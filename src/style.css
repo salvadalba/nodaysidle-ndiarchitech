@@ -215,16 +215,15 @@ button {
 }
 
 button#generate {
-  background: linear-gradient(135deg, var(--primary), #7c3aed);
-  color: white;
+  background: rgba(255, 0, 0, 0.1);
+  border: 1px solid var(--primary);
+  color: var(--primary);
   width: 100%;
   font-weight: 600;
-  box-shadow: 0 4px 12px var(--primary-glow);
 }
 
 button#generate:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 16px var(--primary-glow);
+  background: rgba(255, 0, 0, 0.2);
 }
 
 button#generate:active {
