@@ -1,74 +1,61 @@
 name: Build & Release
 
 on:
-    push:
-        tags:
-            - "v*"
-    workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
-    build:
-        strategy:
-            matrix:
-                include:
-                    - platform: macos-latest
-                      target: aarch64-apple-darwin
-                      name: macOS-arm64
-                    - platform: macos-latest
-                      target: x86_64-apple-darwin
-                      name: macOS-x64
-                    - platform: ubuntu-22.04
-                      target: x86_64-unknown-linux-gnu
-                      name: Linux-x64
-                    - platform: windows-latest
-                      target: x86_64-pc-windows-msvc
-                      name: Windows-x64
+  release:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macos-latest
+            args: "--target aarch64-apple-darwin"
+          - platform: macos-latest
+            args: "--target x86_64-apple-darwin"
+          - platform: ubuntu-22.04
+            args: ""
+          - platform: windows-latest
+            args: ""
 
-        runs-on: ${{ matrix.platform }}
+    runs-on: ${{ matrix.platform }}
 
-        steps:
-            - name: Checkout
-              uses: actions/checkout@v4
+    steps:
+      - uses: actions/checkout@v4
 
-            - name: Setup Node.js
-              uses: actions/setup-node@v4
-              with:
-                  node-version: "20"
-                  cache: "npm"
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
 
-            - name: Install Rust
-              uses: dtolnay/rust-toolchain@stable
-              with:
-                  targets: ${{ matrix.target }}
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
 
-            - name: Install Linux dependencies
-              if: matrix.platform == 'ubuntu-22.04'
-              run: |
-                  sudo apt-get update
-                  sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+      - name: Install Linux dependencies
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
 
-            - name: Install frontend dependencies
-              run: npm ci
+      - name: Install frontend dependencies
+        run: npm install
 
-            - name: Build Tauri app
-              uses: tauri-apps/tauri-action@v0
-              env:
-                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-              with:
-                  tagName: ${{ github.ref_name }}
-                  releaseName: "nodaysidle ${{ github.ref_name }}"
-                  releaseBody: "PRD Compiler - Classified Terminal Edition 🔴⚫"
-                  releaseDraft: false
-                  prerelease: false
-
-            - name: Upload artifacts
-              uses: actions/upload-artifact@v4
-              with:
-                  name: nodaysidle-${{ matrix.name }}
-                  path: |
-                      src-tauri/target/release/bundle/macos/*.app
-                      src-tauri/target/release/bundle/dmg/*.dmg
-                      src-tauri/target/release/bundle/appimage/*.AppImage
-                      src-tauri/target/release/bundle/deb/*.deb
-                      src-tauri/target/release/bundle/msi/*.msi
-                      src-tauri/target/release/bundle/nsis/*.exe
+      - name: Build Tauri app
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: v__VERSION__
+          releaseName: "nodaysidle v__VERSION__"
+          releaseBody: "PRD Compiler - Classified Terminal Edition 🔴⚫"
+          releaseDraft: true
+          prerelease: false
+          args: ${{ matrix.args }}
