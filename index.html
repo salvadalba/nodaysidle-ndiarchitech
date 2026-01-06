@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>nodaysidle</title>
+</head>
+
+<body>
+  <header data-tauri-drag-region>
+    <h1>CLASSIFIED SYSTEM ACCESS v2.1.7</h1>
+  </header>
+
+  <main>
+    <!-- Left Pane: Input & Controls -->
+    <section class="pane">
+      <div class="pane-header">
+        <span class="pane-title">Input &amp; Configuration</span>
+      </div>
+      <div class="pane-content">
+        <div class="controls-grid">
+          <div>
+            <label for="compiler">Compiler Mode</label>
+            <select id="compiler">
+              <option value="prd">PRD — Product Requirements</option>
+              <option value="ard">ARD — Architecture Requirements</option>
+              <option value="trd">TRD — Technical Requirements</option>
+              <option value="tasks">TASKS — Epics + tasks</option>
+              <option value="agent">AGENT — CLI agent prompts</option>
+            </select>
+          </div>
+          <div>
+            <label for="stack">Tech Stack Preset</label>
+            <select id="stack"></select>
+          </div>
+        </div>
+
+        <div>
+          <label for="input">Project Idea / Context</label>
+          <textarea id="input" placeholder="Describe your project idea here..."></textarea>
+        </div>
+
+        <div class="action-bar">
+          <button id="generate">
+            <span>Generate Output</span>
+            <div class="progress-bar" id="progressBar"></div>
+          </button>
+          <button id="generateAll" class="secondary-btn">
+            <span>Generate All</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Right Pane: Output -->
+    <section class="pane">
+      <div class="pane-header">
+        <span class="pane-title">Output Preview</span>
+        <div style="display: flex; gap: 8px;">
+          <button class="secondary-btn" id="exportFolder">Export to Folder</button>
+          <button class="secondary-btn" id="saveOutput">Save MD</button>
+          <button class="secondary-btn" id="copyOutput">Copy MD</button>
+          <button class="secondary-btn" id="copyAgent" style="display: none;">Copy Agent Prompts</button>
+        </div>
+      </div>
+      <!-- No padding on content to let textarea flush -->
+      <div class="pane-content" style="padding: 0;">
+        <textarea id="output" readonly placeholder="Output will appear here..."></textarea>
+      </div>
+    </section>
+  </main>
+
+  <div id="status"></div>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+
+</html>
