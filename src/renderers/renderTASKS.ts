@@ -1,51 +1,67 @@
-export function renderTASKS(data: any): string {
+import { list } from "../utils/formatting"
+
+export function renderTASKS(data: Record<string, unknown>): string {
   const epics = Array.isArray(data.epics) ? data.epics : []
+  const globalAssumptions = Array.isArray(data.global_assumptions) ? data.global_assumptions : []
+  const risks = Array.isArray(data.risks) ? data.risks : []
+  const questions = Array.isArray(data.open_questions) ? data.open_questions : []
 
   return `
-# Tasks Plan — ${data.project_name || "Unnamed Project"}
+# Tasks Plan — ${(data.project_name as string) ?? "Unnamed Project"}
 
 ## 📌 Global Assumptions
-${list(data.global_assumptions)}
+${list(globalAssumptions as string[])}
 
 ## ⚠️ Risks
-${list(data.risks)}
+${list(risks as string[])}
 
 ## 🧩 Epics
 ${epics.length ? epics.map(renderEpic).join("\n\n") : "_None_"}
 
 ## ❓ Open Questions
-${list(data.open_questions)}
+${list(questions as string[])}
 `.trim()
 }
 
-function renderEpic(epic: any): string {
-  const tasks = Array.isArray(epic.tasks) ? epic.tasks : []
-  return `
-## ${epic.name || "Epic"}
-**Goal:** ${epic.goal || ""}
+function renderEpic(epic: unknown): string {
+  const e = epic as Record<string, unknown>
+  const tasks = Array.isArray(e.tasks) ? e.tasks : []
+  const title = (e.title as string) ?? (e.name as string) ?? "Epic"
+  const goal = e.goal as string | undefined
+  const userStories = Array.isArray(e.user_stories) ? e.user_stories : []
+  const acceptanceCriteria = Array.isArray(e.acceptance_criteria) ? e.acceptance_criteria : []
 
-${tasks.length ? tasks.map(renderTask).join("\n") : "_No tasks_"}
+  return `
+## ${title}
+${goal ? `**Goal:** ${goal}` : ""}
+
+### User Stories
+${list(userStories as string[])}
+
+### Acceptance Criteria
+${list(acceptanceCriteria as string[])}
+
+${tasks.length ? tasks.map(renderTask).join("\n\n") : ""}
 `.trim()
 }
 
-function renderTask(task: any): string {
-  const ac = Array.isArray(task.acceptance_criteria) ? task.acceptance_criteria : []
-  const deps = Array.isArray(task.dependencies) ? task.dependencies : []
+function renderTask(task: unknown): string {
+  const t = task as Record<string, unknown>
+  const ac = Array.isArray(t.acceptance_criteria) ? t.acceptance_criteria : []
+  const deps = Array.isArray(t.dependencies) ? t.dependencies : []
+  const title = (t.title as string) ?? "Task"
+  const estimate = t.estimate as string | undefined
+  const description = (t.description as string) ?? ""
 
   return `
-### ✅ ${task.title || "Task"}${task.estimate ? ` (${task.estimate})` : ""}
+### ✅ ${title}${estimate ? ` (${estimate})` : ""}
 
-${task.description || ""}
+${description}
 
 **Acceptance Criteria**
-${list(ac)}
+${list(ac as string[])}
 
 **Dependencies**
-${list(deps)}
+${list(deps as string[])}
 `.trim()
-}
-
-function list(items?: string[]): string {
-  if (!items || items.length === 0) return "_None_"
-  return items.map(i => `- ${i}`).join("\n")
 }

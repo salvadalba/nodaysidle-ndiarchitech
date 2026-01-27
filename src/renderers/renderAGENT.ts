@@ -1,65 +1,42 @@
-export function renderAGENT(data: any): string {
+import { list } from "../utils/formatting"
+
+export function renderAGENT(data: Record<string, unknown>): string {
   const tasks = Array.isArray(data.task_prompts) ? data.task_prompts : []
+  const rules = (data.global_rules as Record<string, unknown>) ?? {}
+  const doRules = Array.isArray(rules.do) ? rules.do : []
+  const dontRules = Array.isArray(rules.dont) ? rules.dont : []
 
   return `
-# Agent Prompts — ${data.project_name || "Unnamed Project"}
+# Agent Prompts — ${(data.project_name as string) ?? "Unnamed Project"}
 
 ## 🧭 Global Rules
 
 ### ✅ Do
-${list(data.global_rules?.do)}
+${list(doRules as string[])}
 
-### ❌ Don’t
-${list(data.global_rules?.dont)}
+### ❌ Don't
+${list(dontRules as string[])}
 
 ## 🧩 Task Prompts
 ${tasks.length ? tasks.map(renderTaskPrompt).join("\n\n---\n\n") : "_None_"}
 `.trim()
 }
 
-function renderTaskPrompt(t: any): string {
-  // Construct the universal prompt from structured fields
-  const filesCreate = list(t.files_to_create || [])
-  const filesMod = list(t.files_to_modify || [])
-
-  const stepsList = (Array.isArray(t.step_instructions) ? t.step_instructions : [])
-    .map((s: string, i: number) => `${i + 1}. ${s}`)
-    .join("\n")
-
-  const constructedPrompt = `
-ROLE: ${t.role || "Expert Engineer"}
-
-GOAL: ${t.goal_one_liner || t.task_title}
-
-CONTEXT: ${t.context || "None provided"}
-
-FILES TO CREATE:
-${filesCreate}
-
-FILES TO MODIFY:
-${filesMod}
-
-DETAILED STEPS:
-${stepsList || "_None_"}
-
-VALIDATION:
-${t.validation_cmd || "npm run build"}
-`.trim()
+function renderTaskPrompt(t: unknown): string {
+  const task = t as Record<string, unknown>
+  const context = (task.context as string) ?? ""
+  const prompt = (task.prompt as string) ?? ""
+  const title = (task.task_title as string) ?? "Task"
 
   return `
-## ${t.task_title || "Task"}
+## ${title}
 
 **Context**
-${t.context || ""}
+${context || "_Not specified_"}
 
 ### Universal Agent Prompt
 \`\`\`
-${constructedPrompt}
+${prompt || "_No prompt generated_"}
 \`\`\`
 `.trim()
-}
-
-function list(items?: string[]): string {
-  if (!items || items.length === 0) return "_None_"
-  return items.map(i => `- ${i}`).join("\n")
 }

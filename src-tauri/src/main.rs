@@ -8,25 +8,51 @@ use tauri::Manager;
 
 #[tauri::command]
 fn compile_prd(app: tauri::AppHandle, input: String) -> Result<String, String> {
+    // Parse the compiler mode from input (first line: "COMPILER: prd")
+    let mode = input
+        .lines()
+        .next()
+        .and_then(|line| line.strip_prefix("COMPILER: "))
+        .unwrap_or("prd")
+        .trim();
+
+    // Map mode to script name
+    let script_name = match mode {
+        "prd" => "compile_prd.sh",
+        "ard" => "compile_ard.sh",
+        "trd" => "compile_trd.sh",
+        "tasks" => "compile_tasks.sh",
+        "agent" => "compile_agent.sh",
+        _ => "compile_prd.sh",
+    };
+
+    // Remove the COMPILER line from input before passing to script
+    let script_input = input
+        .lines()
+        .skip(1)
+        .collect::<Vec<_>>()
+        .join("\n");
+
     // Use Tauri's resource resolver to find the script in the bundle
     let resource_path = app
         .path()
         .resource_dir()
         .map_err(|e| format!("Failed to get resource dir: {e}"))?
-        .join("scripts/compile.sh");
+        .join(format!("scripts/{}", script_name));
 
     // If the file doesn't exist (e.g. sometimes in dev if not copied yet), fallback or let it fail clearly
     if !resource_path.exists() {
         // Fallback for dev mode if needed (though resources should work in dev too)
         // Try looking relative to current dir for dev convenience
         let cwd = std::env::current_dir().unwrap_or_default();
-        let dev_path = cwd.join("src-tauri/scripts/compile.sh");
+        let dev_path = cwd.join(format!("src-tauri/scripts/{}", script_name));
         if dev_path.exists() {
-            return run_script(dev_path, input);
+            return run_script(dev_path, script_input);
         }
+        return Err(format!("Script not found: {} (checked {} and {})", script_name, resource_path.display(), dev_path.display()));
     }
 
-    run_script(resource_path, input)
+    run_script(resource_path, script_input)
 }
 
 fn run_script(path: PathBuf, input: String) -> Result<String, String> {
@@ -58,6 +84,27 @@ fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
+        .plugin(
+            tauri_plugin_sql::Builder::default()
+                .add_migrations(
+                    "sqlite:nodaysidle.db",
+                    vec![tauri_plugin_sql::Migration {
+                        version: 1,
+                        description: "create projects table",
+                        sql: "CREATE TABLE IF NOT EXISTS projects (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            name TEXT NOT NULL,
+                            input TEXT NOT NULL,
+                            output TEXT NOT NULL,
+                            mode TEXT NOT NULL,
+                            stack TEXT NOT NULL,
+                            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                        );",
+                        kind: tauri_plugin_sql::MigrationKind::Up,
+                    }],
+                )
+                .build(),
+        )
         .invoke_handler(tauri::generate_handler![compile_prd])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

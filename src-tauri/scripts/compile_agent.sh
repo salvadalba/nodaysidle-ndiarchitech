@@ -13,8 +13,15 @@ MANDATORY RULES:
 - No markdown, no backticks, no prose
 - Output must start with '{' and end with '}'
 - Prompts must be action-oriented, file-scoped, and testable
-- Prefer small batches of tasks per agent run (avoid mega-prompts)
 - If stack info is present in input, treat it as mandatory and forbid substitutions
+
+SIZE LIMITS (CRITICAL):
+- Maximum 5 task_prompts entries
+- Maximum 5 items in step_instructions per task
+- Maximum 8 items in files_to_create per task
+- Maximum 5 items in do/dont arrays
+- Keep descriptions SHORT and concise
+- This is critical to prevent truncation
 
 Return JSON that matches this schema EXACTLY:
 
@@ -46,29 +53,26 @@ $INPUT
 
 TASK:
 Generate "Agent Prompts" data for CLI coding agents (Claude/Gemini/OpenCode).
-Instead of writing the full prompt, break it down into structured fields so the compiler can assemble it.
+Break it down into structured fields so the compiler can assemble it.
 
 STRICT RULES:
+- LIMIT to 5 task_prompts maximum (group related work into single tasks)
 - FILE-SCOPED: list exact files to create/modify (paths relative to repo root).
 - STACK-LOCKED: if stack preset appears in input, repeat it and do not introduce alternatives.
 - If the stack indicates Tauri local-first, DO NOT create a backend server. Use Tauri Rust commands and SQLite only.
-- No invented dependencies. If proposing a library, label it OPTIONAL and justify it.
-- No invented ports. Use defaults unless explicitly specified in input.
-- VALIDATION commands must use existing scripts from package.json only.
-  - prefer: npm run typecheck, npm run build
-  - if unsure, use: npm run build
+- Keep step_instructions to 5 steps maximum per task.
+- VALIDATION commands: use npm run typecheck or npm run build
 
 OUTPUT STYLE:
-- 1 task_prompts entry per task.
-- 'role': e.g. "Expert Backend Engineer" or "React Frontend Specialist"
-- 'step_instructions': Array of clear, numbered steps (strings).
-- 'files_to_create' / 'files_to_modify': Arrays of file paths.
+- 1 task_prompts entry per major task (MAX 5 TOTAL).
+- 'step_instructions': Array of clear steps (MAX 5 per task).
+- Keep all text concise to avoid truncation.
 
 Do not ask questions. Make reasonable assumptions.
 __USER__
 )"
 
-OUT="$(claude <<EOF
+OUT="$(claude --print <<EOF
 SYSTEM:
 $SYSTEM_PROMPT
 
@@ -77,9 +81,36 @@ $USER_PROMPT
 EOF
 )"
 
-# Sanitize: output sometimes has triple backticks despite instructions
-# Remove markdown code fences and trim whitespace
-OUT="$(echo "$OUT" | sed 's/^```json//g' | sed 's/^```//g' | sed 's/```$//g' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+# Sanitize: remove markdown fences and trim whitespace
+OUT="$(echo "$OUT" | sed 's/^```json//g' | sed 's/^```//g' | sed 's/```$//g' | sed 's/```//g')"
+OUT="$(echo "$OUT" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+
+# Try to extract valid JSON even if there's surrounding text
+if ! echo "$OUT" | jq -e . >/dev/null 2>&1; then
+  # Extract JSON: find first { and last }, grab everything between
+  FIRST_BRACE=$(echo "$OUT" | grep -n '{' | head -1 | cut -d: -f1)
+  if [ -n "$FIRST_BRACE" ]; then
+    # Get everything from first { to end, then use jq to parse
+    EXTRACTED="$(echo "$OUT" | tail -n +"$FIRST_BRACE")"
+    if echo "$EXTRACTED" | jq -e . >/dev/null 2>&1; then
+      OUT="$EXTRACTED"
+    else
+      # Try awk to extract balanced braces
+      EXTRACTED="$(echo "$OUT" | awk '
+        BEGIN { depth=0; started=0; }
+        /{/ {
+          if (!started) started=1;
+          depth+=gsub(/{/,"{");
+        }
+        started { print; depth-=gsub(/}/,"}"); }
+        depth==0 && started { exit; }
+      ')"
+      if echo "$EXTRACTED" | jq -e . >/dev/null 2>&1; then
+        OUT="$EXTRACTED"
+      fi
+    fi
+  fi
+fi
 
 if ! command -v jq >/dev/null 2>&1; then
   echo "jq is required (brew install jq)" >&2
@@ -95,3 +126,4 @@ echo "$OUT" | jq -e . >/dev/null 2>&1 || {
 }
 
 echo "$OUT"
+

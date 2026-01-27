@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "nodaysidle",
-  "version": "0.1.0",
+  "productName": "NDI",
+  "version": "0.2.0",
   "identifier": "com.omarchyuser.prdcompiler",
   "build": {
     "frontendDist": "../dist",
@@ -12,15 +12,18 @@
   "app": {
     "windows": [
       {
-        "title": "nodaysidle",
+        "title": "NDI Architech",
         "width": 1200,
         "height": 800,
         "resizable": true,
-        "fullscreen": false
+        "fullscreen": false,
+        "titleBarStyle": "Overlay",
+        "hiddenTitle": true,
+        "transparent": true
       }
     ],
     "security": {
-      "csp": null
+      "csp": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:"
     }
   },
   "bundle": {
@@ -35,6 +38,9 @@
     ],
     "resources": [
       "scripts/*"
-    ]
+    ],
+    "macOS": {
+      "minimumSystemVersion": "10.13"
+    }
   }
 }

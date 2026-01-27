@@ -1,44 +1,49 @@
-export function renderARD(data: any): string {
+import { list } from "../utils/formatting"
+
+export function renderARD(data: Record<string, unknown>): string {
+  const frontend = (data.frontend_architecture as Record<string, unknown>) ?? {}
+  const backend = (data.backend_architecture as Record<string, unknown>) ?? {}
+  const dataLayer = (data.data_layer as Record<string, unknown>) ?? {}
+  const infra = (data.infrastructure as Record<string, unknown>) ?? {}
+  const tradeoffs = Array.isArray(data.key_tradeoffs) ? data.key_tradeoffs : []
+  const nfr = Array.isArray(data.non_functional_requirements) ? data.non_functional_requirements : []
+  const services = Array.isArray(backend.services) ? backend.services : []
+
   return `
 # Architecture Requirements Document
 
 ## 🧱 System Overview
-${data.system_overview}
+${(data.system_overview as string) ?? "_Not specified_"}
 
 ## 🏗 Architecture Style
-${data.architecture_style}
+${(data.architecture_style as string) ?? "_Not specified_"}
 
 ## 🎨 Frontend Architecture
-- **Framework:** ${data.frontend_architecture.framework}
-- **State Management:** ${data.frontend_architecture.state_management}
-- **Routing:** ${data.frontend_architecture.routing}
-- **Build Tooling:** ${data.frontend_architecture.build_tooling}
+- **Framework:** ${(frontend.framework as string) ?? "_Not specified_"}
+- **State Management:** ${(frontend.state_management as string) ?? "_Not specified_"}
+- **Routing:** ${(frontend.routing as string) ?? "_Not specified_"}
+- **Build Tooling:** ${(frontend.build_tooling as string) ?? "_Not specified_"}
 
 ## 🧠 Backend Architecture
-- **Approach:** ${data.backend_architecture.approach}
-- **API Style:** ${data.backend_architecture.api_style}
+- **Approach:** ${(backend.approach as string) ?? "_Not specified_"}
+- **API Style:** ${(backend.api_style as string) ?? "_Not specified_"}
 - **Services:**
-${list(data.backend_architecture.services)}
+${list(services as string[])}
 
 ## 🗄 Data Layer
-- **Primary Store:** ${data.data_layer.primary_store}
-- **Relationships:** ${data.data_layer.relationships}
-- **Migrations:** ${data.data_layer.migrations}
+- **Primary Store:** ${(dataLayer.primary_store as string) ?? "_Not specified_"}
+- **Relationships:** ${(dataLayer.relationships as string) ?? "_Not specified_"}
+- **Migrations:** ${(dataLayer.migrations as string) ?? "_Not specified_"}
 
 ## ☁️ Infrastructure
-- **Hosting:** ${data.infrastructure.hosting}
-- **Scaling Strategy:** ${data.infrastructure.scaling_strategy}
-- **CI/CD:** ${data.infrastructure.ci_cd}
+- **Hosting:** ${(infra.hosting as string) ?? "_Not specified_"}
+- **Scaling Strategy:** ${(infra.scaling_strategy as string) ?? "_Not specified_"}
+- **CI/CD:** ${(infra.ci_cd as string) ?? "_Not specified_"}
 
 ## ⚖️ Key Trade-offs
-${list(data.key_tradeoffs)}
+${list(tradeoffs as string[])}
 
 ## 📐 Non-Functional Requirements
-${list(data.non_functional_requirements)}
+${list(nfr as string[])}
 `.trim()
-}
-
-function list(items?: string[]): string {
-  if (!items || items.length === 0) return "_None_"
-  return items.map(i => `- ${i}`).join("\n")
 }

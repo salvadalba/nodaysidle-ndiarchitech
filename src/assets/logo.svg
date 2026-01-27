@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Background -->
+  <rect width="512" height="512" fill="#0a0a0b" rx="64"/>
+
+  <!-- N Letter -->
+  <path d="M80 120 L80 392 L200 392 L200 340 L140 340 L140 270 L190 270 L190 220 L140 220 L140 170 L200 170 L200 120 Z"
+        fill="#f4f4f5"/>
+
+  <!-- D Letter - Highlighted in Red -->
+  <path d="M240 120 L240 392 L340 392 C385 392 410 360 410 256 C410 152 385 120 340 120 Z M290 170 L320 170 C350 170 360 190 360 256 C360 322 350 342 320 342 L290 342 Z"
+        fill="#e63946"/>
+
+  <!-- I Letter -->
+  <path d="M440 120 L400 120 L400 170 L425 170 L425 342 L400 342 L400 392 L440 392 L440 342 L465 342 L465 170 L440 170 Z"
+        fill="#f4f4f5"/>
+</svg>

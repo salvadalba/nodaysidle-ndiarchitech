@@ -3,12 +3,16 @@
 
 <head>
   <meta charset="UTF-8" />
-  <title>nodaysidle</title>
+  <title>NDI Architech</title>
 </head>
 
 <body>
   <header data-tauri-drag-region>
-    <h1>CLASSIFIED SYSTEM ACCESS v2.1.7</h1>
+    <div class="header-logo">NODAYSIDLE</div>
+    <div class="stats-bar">
+      <span><span class="icon">⏱</span><span id="statTime">--</span></span>
+      <span><span class="icon">📊</span><span id="statTokens">--</span></span>
+    </div>
   </header>
 
   <main>
@@ -20,19 +24,29 @@
       <div class="pane-content">
         <div class="controls-grid">
           <div>
-            <label for="compiler">Compiler Mode</label>
-            <select id="compiler">
-              <option value="prd">PRD — Product Requirements</option>
-              <option value="ard">ARD — Architecture Requirements</option>
-              <option value="trd">TRD — Technical Requirements</option>
-              <option value="tasks">TASKS — Epics + tasks</option>
-              <option value="agent">AGENT — CLI agent prompts</option>
-            </select>
+            <label>Compiler Mode</label>
+            <div class="custom-select" id="compiler-wrapper">
+              <div class="select-display" id="compiler-display">
+                <span class="brand-label">NODAYSIDLE</span>
+                <svg class="dropdown-arrow" width="10" height="6" viewBox="0 0 10 6">
+                  <path fill="currentColor" d="M0 0l5 6 5-6z"/>
+                </svg>
+              </div>
+              <div class="select-options" id="compiler-options">
+                <div class="option selected" data-value="prd">PRD — Product Requirements</div>
+                <div class="option" data-value="ard">ARD — Architecture Requirements</div>
+                <div class="option" data-value="trd">TRD — Technical Requirements</div>
+                <div class="option" data-value="tasks">TASKS — Epics + tasks</div>
+                <div class="option" data-value="agent">AGENT — CLI agent prompts</div>
+              </div>
+              <input type="hidden" id="compiler" value="prd">
+            </div>
           </div>
           <div>
             <label for="stack">Tech Stack Preset</label>
             <select id="stack"></select>
           </div>
+
         </div>
 
         <div>
@@ -48,6 +62,23 @@
           <button id="generateAll" class="secondary-btn">
             <span>Generate All</span>
           </button>
+          <button id="chainGenerate" class="secondary-btn">
+            <span>Chain</span>
+          </button>
+          <button id="roulette" class="secondary-btn roulette-btn">
+            <span>🎲 Roulette</span>
+          </button>
+        </div>
+
+        <!-- History Section -->
+        <div class="history-section">
+          <div class="history-header">
+            <span class="history-title">📁 Project History</span>
+            <button id="saveProject" class="secondary-btn small-btn">Save Current</button>
+          </div>
+          <div id="historyList" class="history-list">
+            <span class="history-empty">No saved projects</span>
+          </div>
         </div>
       </div>
     </section>
@@ -56,7 +87,20 @@
     <section class="pane">
       <div class="pane-header">
         <span class="pane-title">Output Preview</span>
-        <div style="display: flex; gap: 8px;">
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <button class="icon-btn secondary-btn" id="toggleEdit" title="Toggle inline editing (⌘E)">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M11 4H4a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h7m1-4V9m0-1V6m0 3v2m-3-5.5 2 2m-2-2 2-2" />
+            </svg>
+          </button>
+          <button class="icon-btn secondary-btn" id="toggleGraph" title="View Dependency Graph">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+              <circle cx="4" cy="4" r="2" />
+              <circle cx="12" cy="4" r="2" />
+              <circle cx="8" cy="12" r="2" />
+              <path d="M5.5 5.5L7 10.5M10.5 5.5L9 10.5" />
+            </svg>
+          </button>
           <button class="secondary-btn" id="exportFolder">Export to Folder</button>
           <button class="secondary-btn" id="saveOutput">Save MD</button>
           <button class="secondary-btn" id="copyOutput">Copy MD</button>
@@ -66,6 +110,22 @@
       <!-- No padding on content to let textarea flush -->
       <div class="pane-content" style="padding: 0;">
         <textarea id="output" readonly placeholder="Output will appear here..."></textarea>
+        <div id="graphView" class="graph-container hidden">
+          <svg id="dependencyGraph"></svg>
+          <div class="graph-legend">
+            <span style="color: #3b82f6;">● PRD</span>
+            <span style="color: #8b5cf6;">● ARD</span>
+            <span style="color: #22c55e;">● TRD</span>
+            <span style="color: #f59e0b;">● TASKS</span>
+            <span style="color: #ef4444;">● AGENT</span>
+          </div>
+        </div>
+      </div>
+      <!-- Edit indicator -->
+      <div id="editIndicator" class="edit-indicator hidden">
+        <span class="dot"></span>
+        <span>Editing enabled</span>
+        <button id="resetOutput" class="text-btn">Reset</button>
       </div>
     </section>
   </main>
