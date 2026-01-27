@@ -244,5 +244,5 @@ MIT
 
 <p align="center">
   <strong>Built with Rust, TypeScript, and Claude AI</strong><br>
-  <sub>No days idle. Ship faster.</sub>
+  <sub>NODAYSIDLE. Ship faster.</sub>
 </p>
