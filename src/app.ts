@@ -1,5 +1,4 @@
 import { STACK_PRESETS } from "./stacks"
-import { generateRandomIdea, generateAppName } from "./roulette"
 import { parseChainOutput, renderDependencyGraph } from "./graph"
 import { makeUserPrompt } from "./compilerPrompt"
 import { invoke } from "@tauri-apps/api/core"
@@ -8,6 +7,8 @@ import { renderARD } from "./renderers/renderARD"
 import { renderTRD } from "./renderers/renderTRD"
 import { renderTASKS } from "./renderers/renderTASKS"
 import { renderAGENT } from "./renderers/renderAGENT"
+import { renderIMAGE } from "./renderers/renderIMAGE"
+import { renderVIDEO } from "./renderers/renderVIDEO"
 import { save, open } from "@tauri-apps/plugin-dialog"
 import { writeTextFile } from "@tauri-apps/plugin-fs"
 import Database from "@tauri-apps/plugin-sql"
@@ -47,7 +48,6 @@ const saveOutputBtn = document.getElementById("saveOutput") as HTMLButtonElement
 const generateAllBtn = document.getElementById("generateAll") as HTMLButtonElement
 const chainGenerateBtn = document.getElementById("chainGenerate") as HTMLButtonElement
 const exportFolderBtn = document.getElementById("exportFolder") as HTMLButtonElement
-const rouletteBtn = document.getElementById("roulette") as HTMLButtonElement
 const toggleGraphBtn = document.getElementById("toggleGraph") as HTMLButtonElement
 const graphView = document.getElementById("graphView") as HTMLDivElement
 const graphSvg = document.getElementById("dependencyGraph") as unknown as SVGSVGElement
@@ -119,9 +119,18 @@ function updateStats(timeMs: number, outputText: string) {
 
 // ---- UI helpers ----
 function updateCopyButtons() {
-  const isAgent = compilerSelect.value === "agent"
+  const mode = compilerSelect.value
+  const isAgent = mode === "agent"
+  const isMediaMode = mode === "image" || mode === "video"
+
   // Toggle visibility of agent-specific buttons
   if (copyAgentBtn) copyAgentBtn.style.display = isAgent ? "inline-flex" : "none"
+
+  // Hide stack selector and multi-generate buttons for image/video modes
+  const stackWrapper = stackSelect?.parentElement
+  if (stackWrapper) stackWrapper.style.display = isMediaMode ? "none" : "block"
+  if (generateAllBtn) generateAllBtn.style.display = isMediaMode ? "none" : "inline-flex"
+  if (chainGenerateBtn) chainGenerateBtn.style.display = isMediaMode ? "none" : "inline-flex"
 }
 
 let statusTimeout: number | undefined
@@ -312,6 +321,12 @@ ${userPrompt}`
         case "agent":
           outputEl.value = renderAGENT(data)
           break
+        case "image":
+          outputEl.value = renderIMAGE(data)
+          break
+        case "video":
+          outputEl.value = renderVIDEO(data)
+          break
         default:
           outputEl.value = JSON.stringify(data, null, 2)
       }
@@ -349,7 +364,9 @@ const renderers: Record<string, (data: any) => string> = {
   ard: renderARD,
   trd: renderTRD,
   tasks: renderTASKS,
-  agent: renderAGENT
+  agent: renderAGENT,
+  image: renderIMAGE,
+  video: renderVIDEO
 }
 
 if (generateAllBtn) {
@@ -762,36 +779,6 @@ document.addEventListener("keydown", (event) => {
 
 // Initialize database on load
 initDatabase()
-
-// ---- Project Roulette ----
-if (rouletteBtn) {
-  rouletteBtn.addEventListener("click", () => {
-    const idea = generateRandomIdea()
-    const appName = generateAppName()
-
-    // Set the suggested stack
-    if (stackSelect) {
-      const stackOption = Array.from(stackSelect.options).find(
-        opt => opt.value === idea.suggestedStack
-      )
-      if (stackOption) {
-        stackSelect.value = idea.suggestedStack
-      }
-    }
-
-    // Populate input with generated idea
-    if (inputEl) {
-      inputEl.value = `Project Name: ${appName}\n\n${idea.description}`
-    }
-
-    setStatus(`🎲 Generated: ${appName}`)
-
-    // Auto-trigger Chain after a short delay for visual feedback
-    setTimeout(() => {
-      chainGenerateBtn?.click()
-    }, 500)
-  })
-}
 
 // ---- Dependency Graph Toggle ----
 let isGraphVisible = false

@@ -1,6 +1,6 @@
 import type { StackPreset } from "./stacks"
 
-export type CompilerMode = "prd" | "ard" | "trd" | "tasks" | "agent"
+export type CompilerMode = "prd" | "ard" | "trd" | "tasks" | "agent" | "image" | "video"
 
 export function makeUserPrompt(
   input: string,
@@ -25,6 +25,14 @@ export function makeUserPrompt(
     case "agent":
       taskInstruction =
         "Generate CLI agent prompts (Claude, Gemini, etc.) to scaffold this project."
+      break
+    case "image":
+      taskInstruction =
+        "Generate a detailed, professional image generation prompt. Include composition, camera angle, lens, lighting, style, color palette, and tool-specific prompts for Midjourney, DALL-E, and Stable Diffusion."
+      break
+    case "video":
+      taskInstruction =
+        "Generate a detailed video generation prompt. Include scene description, camera movement, subject motion, duration, visual style, color grading, mood, audio suggestions, and tool-specific prompts for Veo 3, Runway, Pika, and Kling."
       break
   }
 

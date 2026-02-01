@@ -2,7 +2,7 @@
 
 **Transform a 2-sentence idea into production-ready documentation in seconds.**
 
-A native macOS desktop app powered by Rust + Tauri that generates comprehensive product documentation using Claude AI. From PRD to deployment-ready agent prompts — fully local, blazingly fast.
+A native macOS desktop app + CLI powered by Rust + Tauri that generates comprehensive product documentation using Claude AI. From PRD to deployment-ready agent prompts, plus AI image and video prompt generation — fully local, blazingly fast.
 
 ![macOS](https://img.shields.io/badge/macOS-15+-black?style=flat-square&logo=apple)
 ![Rust](https://img.shields.io/badge/Rust-1.75+-orange?style=flat-square&logo=rust)
@@ -12,6 +12,8 @@ A native macOS desktop app powered by Rust + Tauri that generates comprehensive 
 ---
 
 ## What It Does
+
+### Product Documentation (PRD Mode)
 
 **Input:** A simple project description (2-5 sentences)
 
@@ -25,13 +27,37 @@ A native macOS desktop app powered by Rust + Tauri that generates comprehensive 
 | **TASKS** | Epics & Stories — actionable development tasks with acceptance criteria |
 | **AGENT** | CLI Prompts — copy-paste prompts for Claude/Cursor/Copilot |
 
+### AI Image Prompts (IMAGE Mode)
+
+**Input:** Simple description like "dragon flies above new york"
+
+**Output:** Professional prompts optimized for:
+- **Midjourney** — with style keywords and parameters
+- **DALL-E** — detailed natural language prompts
+- **Stable Diffusion** — technical terms and weights
+
+Includes: composition, camera angle, lens, lighting, style, color palette, negative prompts.
+
+### AI Video Prompts (VIDEO Mode)
+
+**Input:** Simple description like "timelapse of sunrise over mountains"
+
+**Output:** Professional prompts optimized for:
+- **Google Veo 3** — cinematic, natural motion
+- **Runway Gen-3** — motion-focused descriptions
+- **Pika Labs** — concise action prompts
+- **Kling AI** — detailed scene and motion
+
+Includes: camera movement, subject motion, duration, color grading, mood, audio suggestions.
+
 ---
 
 ## Features
 
 - **Chain Generation** — Each document feeds context to the next (PRD → ARD → TRD → TASKS → AGENT)
-- **15+ Tech Stack Presets** — SwiftUI, Next.js, Tauri, Flutter, and more
-- **Project Roulette** — Generate random startup ideas instantly
+- **11 Tech Stack Presets** — SwiftUI, Next.js, Tauri, Flutter, CLI tools, and more
+- **Image/Video Prompt Generation** — Professional AI art prompts from simple descriptions
+- **CLI Tool** — Generate documentation from the command line
 - **Dependency Graph** — D3-powered visualization of document relationships
 - **Project History** — SQLite-backed local storage of all generations
 - **Inline Editing** — Modify outputs directly before exporting
@@ -46,43 +72,11 @@ A native macOS desktop app powered by Rust + Tauri that generates comprehensive 
 │  Frontend         │  TypeScript + Vite              │
 │  UI               │  Vanilla CSS (macOS Dark Theme) │
 │  Desktop          │  Tauri 2 (Rust)                 │
+│  CLI              │  Commander.js + Ora + Chalk     │
 │  AI               │  Claude CLI                     │
 │  Database         │  SQLite                         │
 │  Visualization    │  D3.js                          │
 └─────────────────────────────────────────────────────┘
-```
-
----
-
-## Screenshots
-
-*Native macOS dark theme with glassmorphism and SF fonts*
-
-```
-┌──────────────────────────────────────────────────────────────┐
-│  ●  ●  ●                    NDI ARCHITECH                    │
-├────────────────────────────┬─────────────────────────────────┤
-│  ▼ Compiler Mode           │                                 │
-│  ┌─────────────────────┐   │  # Product Requirements         │
-│  │ PRD                 │   │                                 │
-│  │ ARD                 │   │  ## Product Vision              │
-│  │ TRD                 │   │  A revolutionary app that...    │
-│  │ TASKS               │   │                                 │
-│  │ AGENT               │   │  ## Goals                       │
-│  └─────────────────────┘   │  - Goal 1                       │
-│                            │  - Goal 2                       │
-│  ▼ Tech Stack              │                                 │
-│  ┌─────────────────────┐   │  ## Core Features               │
-│  │ Native macOS App    │   │  - Feature 1                    │
-│  └─────────────────────┘   │  - Feature 2                    │
-│                            │                                 │
-│  ┌─────────────────────┐   │                                 │
-│  │ Your idea here...   │   │                                 │
-│  │                     │   │                                 │
-│  └─────────────────────┘   │                                 │
-│                            │                                 │
-│  [Generate] [Chain] [Dice] │        [Copy] [Save] [Export]   │
-└────────────────────────────┴─────────────────────────────────┘
 ```
 
 ---
@@ -121,20 +115,48 @@ cp -r src-tauri/target/release/bundle/macos/NDI.app /Applications/
 
 ## Usage
 
-### Basic Generation
+### Desktop App
 
-1. Select a **Compiler Mode** (PRD, ARD, TRD, TASKS, or AGENT)
-2. Choose a **Tech Stack** preset
-3. Enter your project idea
+1. Select a **Compiler Mode**:
+   - PRD, ARD, TRD, TASKS, AGENT — for product documentation
+   - IMAGE — for AI image prompts
+   - VIDEO — for AI video prompts
+
+2. For PRD modes: Choose a **Tech Stack** preset
+3. Enter your project idea or prompt
 4. Click **Generate** or press `Cmd + Enter`
 
 ### Chain Generation
 
-Click **Chain** to generate all 5 documents in sequence, where each document builds on the previous one's context.
+Click **Chain** to generate all 5 PRD documents in sequence, where each document builds on the previous one's context.
 
-### Project Roulette
+### CLI Tool
 
-Click the dice button to generate a random startup idea and automatically start chain generation.
+```bash
+# Run from project directory
+cd /path/to/nodaysidle-ndiarchitech
+
+# List all stack presets
+npx tsx src/cli.ts stacks
+
+# Show stack details
+npx tsx src/cli.ts stack cli-tool
+
+# Generate single document
+npx tsx src/cli.ts generate "Build a todo app" --mode prd --stack nextjs-fullstack
+
+# Generate all documents
+npx tsx src/cli.ts generate-all "Build a browser" --stack minimal-browser --output ./docs
+
+# Chain generate (PRD → ARD → TRD → Tasks → Agent)
+npx tsx src/cli.ts chain "Build a menu bar app" --stack swift-macos-utility
+
+# Generate image prompts
+npx tsx src/cli.ts image "dragon flies above new york"
+
+# Generate video prompts
+npx tsx src/cli.ts video "timelapse of sunrise over mountains"
+```
 
 ---
 
@@ -156,22 +178,27 @@ Click the dice button to generate a random startup idea and automatically start 
 ## Stack Presets
 
 ### Native Apps
-- **Native macOS App** — SwiftUI 6, SwiftData, CoreML
-- **macOS Utility / Menu Bar** — MenuBarExtra, global shortcuts
-- **Native iOS App** — SwiftUI 6, WidgetKit, App Intents
-- **Tauri Desktop App** — Rust + Web frontend
+- **Native macOS App** (`swift-macos`) — SwiftUI 6, SwiftData, CoreML
+- **macOS Utility / Menu Bar** (`swift-macos-utility`) — MenuBarExtra, global shortcuts
+- **Native iOS App** (`swift-ios`) — SwiftUI 6, WidgetKit, App Intents
 
 ### Web
-- **Next.js 15 Full Stack** — App Router, Server Actions, Prisma
-- **Astro 5 Static Site** — Zero JS, content collections
-- **Premium Web App** — Glassmorphism, edge-first
+- **Next.js 15 Full Stack** (`nextjs-fullstack`) — App Router, Server Actions, Prisma
+- **Astro 5 Static Site** (`astro-site`) — Zero JS, content collections, landing pages
+
+### Desktop
+- **Tauri 2 Desktop App** (`tauri-localfirst`) — Rust + Web frontend, cross-platform
 
 ### Mobile
-- **Flutter Cross-Platform** — iOS + Android
-- **Native Android** — Jetpack Compose, Material 3
+- **Flutter Cross-Platform** (`flutter-mobile`) — iOS + Android
+- **Native Android** (`kotlin-android`) — Jetpack Compose, Material 3
+
+### CLI & Browser
+- **CLI Tool** (`cli-tool`) — Rust + clap, single binary distribution
+- **Minimal Browser** (`minimal-browser`) — Tauri + WebKitGTK + adblock-rust
 
 ### Real-time
-- **Realtime Collaborative** — WebSockets, CRDTs, PartyKit
+- **Realtime Collaborative** (`realtime-app`) — WebSockets, CRDTs, PartyKit
 
 ---
 
@@ -181,17 +208,35 @@ Click the dice button to generate a random startup idea and automatically start 
 nodaysidle-ndiarchitech/
 ├── src/                          # TypeScript frontend
 │   ├── app.ts                    # Main application logic
+│   ├── cli.ts                    # CLI entry point
+│   ├── compiler/                 # Compilation core
+│   │   ├── index.ts              # Exports
+│   │   ├── claudeRunner.ts       # Claude CLI execution
+│   │   └── schemas.ts            # JSON schemas for all modes
 │   ├── renderer.ts               # PRD markdown formatter
 │   ├── renderers/                # Document formatters
+│   │   ├── renderARD.ts
+│   │   ├── renderTRD.ts
+│   │   ├── renderTASKS.ts
+│   │   ├── renderAGENT.ts
+│   │   ├── renderIMAGE.ts        # Image prompt formatter
+│   │   └── renderVIDEO.ts        # Video prompt formatter
 │   ├── stacks.ts                 # Tech stack presets
+│   ├── compilerPrompt.ts         # Prompt construction
 │   ├── graph.ts                  # D3 dependency visualization
-│   ├── roulette.ts               # Random idea generator
-│   ├── types/                    # TypeScript interfaces
 │   └── utils/                    # Shared utilities
 ├── src-tauri/                    # Rust backend
 │   ├── src/main.rs               # Tauri commands
 │   └── scripts/                  # Claude CLI wrappers
+│       ├── compile_prd.sh
+│       ├── compile_ard.sh
+│       ├── compile_trd.sh
+│       ├── compile_tasks.sh
+│       ├── compile_agent.sh
+│       ├── compile_image.sh
+│       └── compile_video.sh
 ├── index.html                    # Entry point
+├── STACKS.md                     # Stack presets guide
 └── package.json
 ```
 
@@ -220,7 +265,50 @@ nodaysidle-ndiarchitech/
 3. Rust spawns bash script with Claude CLI
 4. Claude generates structured JSON
 5. Bash validates JSON with `jq`
-6. TypeScript renders markdown and displays output
+6. TypeScript renders markdown/JSON and displays output
+
+---
+
+## Example Outputs
+
+### Image Prompt Example
+
+**Input:** `dragon flies above new york`
+
+**Output:**
+```json
+{
+  "title": "Dragon Soaring Over New York City Skyline",
+  "prompt": "A majestic dragon with iridescent scales soaring gracefully above the New York City skyline at golden hour...",
+  "tool_prompts": {
+    "midjourney": "majestic iridescent dragon soaring above New York City skyline, Empire State Building visible, golden hour lighting --ar 16:9 --v 6",
+    "dalle": "A highly detailed photorealistic image of a large fantasy dragon...",
+    "stable_diffusion": "(masterpiece, best quality, ultra detailed, 8K), photorealistic dragon with iridescent scales..."
+  }
+}
+```
+
+### Video Prompt Example
+
+**Input:** `car chase through tokyo at night`
+
+**Output:**
+```json
+{
+  "title": "Nighttime Tokyo Street Chase",
+  "scene": "High-speed car chase through neon-lit Tokyo streets...",
+  "camera": {
+    "movement": "tracking shot following the lead car",
+    "angle": "low angle",
+    "speed": "fast with speed ramping"
+  },
+  "tool_prompts": {
+    "veo": "Cinematic tracking shot of a sports car racing through neon-lit Tokyo streets...",
+    "runway": "Fast-paced car chase, tracking shot, neon reflections on wet pavement...",
+    "kling": "Night chase scene in Tokyo, camera follows speeding car..."
+  }
+}
+```
 
 ---
 

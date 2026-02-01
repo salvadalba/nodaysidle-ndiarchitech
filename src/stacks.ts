@@ -75,20 +75,23 @@ export const STACK_PRESETS: StackPreset[] = [
             "Vercel or self-hosted deployment",
             "Auth.js for authentication",
             "next/image for optimized images",
+            "Glassmorphism and blur effects optional",
+            "Micro-interactions and 60fps animations",
         ],
     },
 
     {
         id: "astro-site",
         name: "Astro 5 Static Site",
-        description: "Lightning-fast marketing sites, portfolios, blogs, and docs",
+        description: "Lightning-fast marketing sites, portfolios, blogs, landing pages, and docs",
         frontend: [
             "Astro 5",
             "React/Svelte islands (optional)",
             "Tailwind CSS 4",
             "View Transitions API",
+            "GSAP / Lenis (smooth scroll)",
         ],
-        backend: ["Static (SSG)", "Hybrid SSR (optional)"],
+        backend: ["Static (SSG)", "Hybrid SSR (optional)", "Formspree/Netlify Forms"],
         database: ["Astro Content Collections", "Markdown/MDX"],
         notes: [
             "Zero JS by default, islands for interactivity",
@@ -96,51 +99,8 @@ export const STACK_PRESETS: StackPreset[] = [
             "Perfect Lighthouse scores",
             "Netlify/Vercel/Cloudflare Pages deploy",
             "SEO and Open Graph meta built-in",
-        ],
-    },
-
-    {
-        id: "landing-page",
-        name: "Modern Landing Page",
-        description: "High-conversion landing page with animations and premium design",
-        frontend: [
-            "Vite 6",
-            "TypeScript",
-            "Vanilla CSS (custom properties)",
-            "GSAP / Lenis (smooth scroll)",
-            "View Transitions API",
-        ],
-        backend: ["None (static)", "Formspree/Netlify Forms (contact)"],
-        database: ["None"],
-        notes: [
-            "No framework overhead, pure performance",
-            "Scroll-triggered animations",
-            "Intersection Observer for reveals",
-            "CSS @layer for organization",
+            "Scroll-triggered animations with Intersection Observer",
             "Dark mode with prefers-color-scheme",
-            "Single HTML file deployment possible",
-        ],
-    },
-
-    {
-        id: "premium-webapp",
-        name: "Premium Web App",
-        description: "Design-first interactive web app with animations and glassmorphism",
-        frontend: [
-            "Vite 6",
-            "React 19",
-            "Tailwind CSS 4",
-            "Framer Motion",
-            "Radix UI primitives",
-        ],
-        backend: ["Hono (lightweight)", "Cloudflare Workers"],
-        database: ["Turso (libSQL)", "D1 (Cloudflare)"],
-        notes: [
-            "Edge-first deployment",
-            "Glassmorphism and blur effects",
-            "Micro-interactions on every element",
-            "60fps animations",
-            "Mobile-responsive with touch gestures",
         ],
     },
 
@@ -217,6 +177,46 @@ export const STACK_PRESETS: StackPreset[] = [
             "Hot reload development",
             "Platform channels for native code",
             "Firebase optional",
+        ],
+    },
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 🛠️ CLI TOOLS
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    {
+        id: "cli-tool",
+        name: "CLI Tool",
+        description: "Command-line utility with argument parsing and rich terminal output",
+        frontend: ["None"],
+        backend: ["Rust", "clap (args)", "indicatif (progress)", "colored (output)"],
+        database: ["JSON/TOML config", "SQLite (optional)"],
+        notes: [
+            "Single binary distribution",
+            "Shell completions (bash/zsh/fish)",
+            "Cross-platform (macOS/Windows/Linux)",
+            "Homebrew/cargo install distribution",
+            "No runtime dependencies",
+        ],
+    },
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 🌐 BROWSER
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    {
+        id: "minimal-browser",
+        name: "Minimal Browser",
+        description: "Lightweight Rust browser with built-in adblock",
+        frontend: ["Tauri 2 WebView", "Minimal UI (HTML/CSS)", "URL bar + tabs"],
+        backend: ["Rust", "adblock-rust (Brave's engine)", "WebView2/WebKitGTK"],
+        database: ["SQLite (bookmarks/history)", "JSON config"],
+        notes: [
+            "Sub-50MB binary size",
+            "Built-in adblock, no extensions needed",
+            "Privacy-focused: no telemetry",
+            "WebKitGTK on Linux (Arch), WebKit on macOS, WebView2 on Windows",
+            "Google Search API for address bar suggestions",
         ],
     },
 
