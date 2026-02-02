@@ -109,7 +109,8 @@ header {
   font-size: 14px;
   font-weight: 600;
   letter-spacing: 0.5px;
-  color: rgba(255, 255, 255, 0.55);
+  color: rgba(255, 255, 255, 0.7);
+  text-shadow: 0 0 30px rgba(230, 57, 70, 0.15);
 }
 
 /* Stats Bar - Right Side */
@@ -350,18 +351,29 @@ button#generate:hover:not(:disabled) {
   border-color: var(--border-default);
 }
 
-/* Generate All & Chain Buttons */
-button#generateAll,
-button#chainGenerate {
+/* Generate All Button */
+button#generateAll {
   background: rgba(255, 255, 255, 0.08);
   color: var(--text-primary);
   border: 1px solid var(--border-default);
 }
 
-button#generateAll:hover:not(:disabled),
-button#chainGenerate:hover:not(:disabled) {
+button#generateAll:hover:not(:disabled) {
   background: rgba(255, 255, 255, 0.12);
   border-color: rgba(255, 255, 255, 0.18);
+}
+
+/* Chain Button - Primary Action */
+button#chainGenerate {
+  background: linear-gradient(135deg, #e63946 0%, #c1121f 100%);
+  color: #fff;
+  border: none;
+  font-weight: 600;
+}
+
+button#chainGenerate:hover:not(:disabled) {
+  background: linear-gradient(135deg, #ee5a66 0%, #d62839 100%);
+  box-shadow: 0 0 20px rgba(230, 57, 70, 0.3);
 }
 
 /* Small Button */

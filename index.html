@@ -10,8 +10,21 @@
   <header data-tauri-drag-region>
     <div class="header-logo">NODAYSIDLE</div>
     <div class="stats-bar">
-      <span><span class="icon">⏱</span><span id="statTime">--</span></span>
-      <span><span class="icon">📊</span><span id="statTokens">--</span></span>
+      <span>
+        <svg class="icon" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5">
+          <circle cx="6" cy="6" r="5"/>
+          <path d="M6 3v3l2 1"/>
+        </svg>
+        <span id="statTime">--</span>
+      </span>
+      <span>
+        <svg class="icon" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5">
+          <rect x="1" y="4" width="2" height="7" rx="0.5"/>
+          <rect x="5" y="2" width="2" height="9" rx="0.5"/>
+          <rect x="9" y="1" width="2" height="10" rx="0.5"/>
+        </svg>
+        <span id="statTokens">--</span>
+      </span>
     </div>
   </header>
 
@@ -72,7 +85,12 @@
         <!-- History Section -->
         <div class="history-section">
           <div class="history-header">
-            <span class="history-title">📁 Project History</span>
+            <span class="history-title">
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" style="vertical-align: -1px; margin-right: 4px;">
+                <path d="M1 3.5V10a1 1 0 001 1h8a1 1 0 001-1V4.5a1 1 0 00-1-1H6L5 2H2a1 1 0 00-1 1.5z"/>
+              </svg>
+              Project History
+            </span>
             <button id="saveProject" class="secondary-btn small-btn">Save Current</button>
           </div>
           <div id="historyList" class="history-list">
