@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1a1a1e"/>
+      <stop offset="100%" stop-color="#0d0d0f"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ee5a66"/>
+      <stop offset="100%" stop-color="#e63946"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <!-- Background -->
+  <rect width="1024" height="1024" rx="220" fill="url(#bg)"/>
+  <!-- Subtle border -->
+  <rect x="4" y="4" width="1016" height="1016" rx="216" fill="none" stroke="rgba(230,57,70,0.2)" stroke-width="2"/>
+  <!-- NDI text -->
+  <text x="512" y="460" text-anchor="middle" font-family="SF Pro Display, -apple-system, Helvetica Neue, Arial, sans-serif" font-weight="800" font-size="320" fill="#f0f0f2" letter-spacing="-8">NDI</text>
+  <!-- Red accent bar -->
+  <rect x="280" y="520" width="464" height="6" rx="3" fill="url(#accent)" filter="url(#glow)"/>
+  <!-- ARCHITECH subtitle -->
+  <text x="512" y="620" text-anchor="middle" font-family="SF Mono, Menlo, monospace" font-weight="500" font-size="90" fill="url(#accent)" letter-spacing="24">ARCHITECH</text>
+</svg>

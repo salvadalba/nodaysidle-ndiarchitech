@@ -23,6 +23,9 @@ fn compile_prd(app: tauri::AppHandle, input: String) -> Result<String, String> {
         "trd" => "compile_trd.sh",
         "tasks" => "compile_tasks.sh",
         "agent" => "compile_agent.sh",
+        "image" => "compile_image.sh",
+        "video" => "compile_video.sh",
+        "design" => "compile_design.sh",
         _ => "compile_prd.sh",
     };
 
@@ -88,20 +91,28 @@ fn main() {
             tauri_plugin_sql::Builder::default()
                 .add_migrations(
                     "sqlite:nodaysidle.db",
-                    vec![tauri_plugin_sql::Migration {
-                        version: 1,
-                        description: "create projects table",
-                        sql: "CREATE TABLE IF NOT EXISTS projects (
-                            id INTEGER PRIMARY KEY AUTOINCREMENT,
-                            name TEXT NOT NULL,
-                            input TEXT NOT NULL,
-                            output TEXT NOT NULL,
-                            mode TEXT NOT NULL,
-                            stack TEXT NOT NULL,
-                            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-                        );",
-                        kind: tauri_plugin_sql::MigrationKind::Up,
-                    }],
+                    vec![
+                        tauri_plugin_sql::Migration {
+                            version: 1,
+                            description: "create projects table",
+                            sql: "CREATE TABLE IF NOT EXISTS projects (
+                                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                name TEXT NOT NULL,
+                                input TEXT NOT NULL,
+                                output TEXT NOT NULL,
+                                mode TEXT NOT NULL,
+                                stack TEXT NOT NULL,
+                                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                            );",
+                            kind: tauri_plugin_sql::MigrationKind::Up,
+                        },
+                        tauri_plugin_sql::Migration {
+                            version: 2,
+                            description: "add chain_outputs column",
+                            sql: "ALTER TABLE projects ADD COLUMN chain_outputs TEXT DEFAULT NULL;",
+                            kind: tauri_plugin_sql::MigrationKind::Up,
+                        },
+                    ],
                 )
                 .build(),
         )

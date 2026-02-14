@@ -53,6 +53,7 @@
                 <div class="option" data-value="agent">AGENT — CLI agent prompts</div>
                 <div class="option divider" data-value="image">IMAGE — AI image prompts</div>
                 <div class="option" data-value="video">VIDEO — AI video prompts</div>
+                <div class="option" data-value="design">DESIGN — Cultural design prompts</div>
               </div>
               <input type="hidden" id="compiler" value="prd">
             </div>
@@ -67,6 +68,29 @@
         <div>
           <label for="input">Project Idea / Context</label>
           <textarea id="input" placeholder="Describe your project idea here..."></textarea>
+        </div>
+
+        <!-- Reference Image Upload - only visible in DESIGN mode -->
+        <div id="designImageSection" class="design-image-section" style="display: none;">
+          <label>Reference Image <span class="label-hint">(optional)</span></label>
+          <div id="designImageDrop" class="image-drop-zone">
+            <input type="file" id="designImageInput" accept="image/*" />
+            <div id="designDropContent" class="drop-content">
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
+                <rect x="2" y="2" width="16" height="16" rx="2"/>
+                <circle cx="7" cy="7" r="1.5"/>
+                <path d="M2 14l4-4 3 3 4-5 5 6"/>
+              </svg>
+              <span>Drop image or click to browse</span>
+            </div>
+            <div id="designImagePreview" class="image-preview hidden">
+              <img id="designPreviewImg" />
+              <div class="preview-info">
+                <span id="designImageName"></span>
+                <button id="designImageClear" class="text-btn">Remove</button>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div class="action-bar">
@@ -123,6 +147,19 @@
           <button class="secondary-btn" id="copyOutput">Copy MD</button>
           <button class="secondary-btn" id="copyAgent" style="display: none;">Copy Agent Prompts</button>
         </div>
+      </div>
+      <!-- Chain Tab Bar - only visible after chain run -->
+      <div id="chainTabBar" class="chain-tab-bar hidden">
+        <div class="chain-tabs">
+          <button class="chain-tab active" data-mode="prd">PRD</button>
+          <button class="chain-tab" data-mode="ard">ARD</button>
+          <button class="chain-tab" data-mode="trd">TRD</button>
+          <button class="chain-tab" data-mode="tasks">TASKS</button>
+          <button class="chain-tab" data-mode="agent">AGENT</button>
+        </div>
+        <button id="rechainBtn" class="rechain-btn" title="Re-generate all steps after this one">
+          Re-chain from here →
+        </button>
       </div>
       <!-- No padding on content to let textarea flush -->
       <div class="pane-content" style="padding: 0;">

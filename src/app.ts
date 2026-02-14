@@ -9,6 +9,8 @@ import { renderTASKS } from "./renderers/renderTASKS"
 import { renderAGENT } from "./renderers/renderAGENT"
 import { renderIMAGE } from "./renderers/renderIMAGE"
 import { renderVIDEO } from "./renderers/renderVIDEO"
+import { renderDESIGN } from "./renderers/renderDESIGN"
+
 import { save, open } from "@tauri-apps/plugin-dialog"
 import { writeTextFile } from "@tauri-apps/plugin-fs"
 import Database from "@tauri-apps/plugin-sql"
@@ -30,7 +32,15 @@ interface Project {
   mode: string
   stack: string
   created_at: string
+  chain_outputs: string | null
 }
+
+// Chain state - persists per-step outputs after chain run
+let chainOutputs: Record<string, string> = {}
+let chainRawOutputs: Record<string, string> = {}
+let isChainResult = false
+let activeChainTab = "prd"
+let editedTabs = new Set<string>()
 
 // Elements - already present in index.html
 const compilerSelect = document.getElementById("compiler") as HTMLInputElement
@@ -57,6 +67,43 @@ const statTimeEl = document.getElementById("statTime") as HTMLSpanElement
 const statTokensEl = document.getElementById("statTokens") as HTMLSpanElement
 const saveProjectBtn = document.getElementById("saveProject") as HTMLButtonElement
 const historyListEl = document.getElementById("historyList") as HTMLDivElement
+const chainTabBar = document.getElementById("chainTabBar") as HTMLDivElement
+const rechainBtn = document.getElementById("rechainBtn") as HTMLButtonElement
+
+// ---- Chain Tab Bar Functions ----
+function showChainTabBar() {
+  if (chainTabBar) chainTabBar.classList.remove("hidden")
+  switchChainTab(MODES[0])
+}
+
+function hideChainTabBar() {
+  if (chainTabBar) chainTabBar.classList.add("hidden")
+  isChainResult = false
+}
+
+function switchChainTab(mode: string) {
+  activeChainTab = mode
+  chainTabBar?.querySelectorAll(".chain-tab").forEach(tab => {
+    const tabEl = tab as HTMLElement
+    tabEl.classList.toggle("active", tabEl.dataset.mode === mode)
+  })
+  if (chainOutputs[mode]) {
+    outputEl.value = chainOutputs[mode]
+  }
+}
+
+function setTabState(mode: string, state: "regenerating" | "done" | "error") {
+  const tab = chainTabBar?.querySelector(`[data-mode="${mode}"]`) as HTMLElement
+  if (!tab) return
+  tab.classList.remove("regenerating")
+  if (state === "regenerating") tab.classList.add("regenerating")
+}
+
+function setTabEdited(mode: string, edited: boolean) {
+  const tab = chainTabBar?.querySelector(`[data-mode="${mode}"]`) as HTMLElement
+  if (!tab) return
+  tab.classList.toggle("edited", edited)
+}
 
 // ---- populate stack presets ----
 if (stackSelect) {
@@ -121,16 +168,20 @@ function updateStats(timeMs: number, outputText: string) {
 function updateCopyButtons() {
   const mode = compilerSelect.value
   const isAgent = mode === "agent"
-  const isMediaMode = mode === "image" || mode === "video"
+  const isMediaMode = mode === "image" || mode === "video" || mode === "design"
 
   // Toggle visibility of agent-specific buttons
   if (copyAgentBtn) copyAgentBtn.style.display = isAgent ? "inline-flex" : "none"
 
-  // Hide stack selector and multi-generate buttons for image/video modes
+  // Hide stack selector and multi-generate buttons for image/video/design modes
   const stackWrapper = stackSelect?.parentElement
   if (stackWrapper) stackWrapper.style.display = isMediaMode ? "none" : "block"
   if (generateAllBtn) generateAllBtn.style.display = isMediaMode ? "none" : "inline-flex"
   if (chainGenerateBtn) chainGenerateBtn.style.display = isMediaMode ? "none" : "inline-flex"
+
+  // Show/hide design image upload section
+  const designImageSection = document.getElementById("designImageSection")
+  if (designImageSection) designImageSection.style.display = mode === "design" ? "block" : "none"
 }
 
 let statusTimeout: number | undefined
@@ -271,8 +322,15 @@ if (generateBtn) {
 
     try {
       const selectedStack = STACK_PRESETS.find(s => s.id === stackSelect.value)
+
+      // For design mode, append image analysis if available
+      let inputText = inputEl.value
+      if (compilerSelect.value === "design" && designImageAnalysis) {
+        inputText += `\n\n${designImageAnalysis}`
+      }
+
       const userPrompt = makeUserPrompt(
-        inputEl.value,
+        inputText,
         compilerSelect.value,
         selectedStack
       )
@@ -327,6 +385,9 @@ ${userPrompt}`
         case "video":
           outputEl.value = renderVIDEO(data)
           break
+        case "design":
+          outputEl.value = renderDESIGN(data)
+          break
         default:
           outputEl.value = JSON.stringify(data, null, 2)
       }
@@ -334,6 +395,7 @@ ${userPrompt}`
       const elapsed = Date.now() - startTime
       updateStats(elapsed, outputEl.value)
       setStatus("Compilation Complete ✓")
+      hideChainTabBar()
 
     } catch (err: any) {
       console.error(err)
@@ -366,7 +428,8 @@ const renderers: Record<string, (data: any) => string> = {
   tasks: renderTASKS,
   agent: renderAGENT,
   image: renderIMAGE,
-  video: renderVIDEO
+  video: renderVIDEO,
+  design: renderDESIGN
 }
 
 if (generateAllBtn) {
@@ -431,11 +494,27 @@ if (exportFolderBtn) {
       })
 
       if (folderPath && typeof folderPath === "string") {
-        // Check if this is a combined "Generate All" output
+        // Chain result: export each mode from chainOutputs directly
+        if (isChainResult && Object.keys(chainOutputs).length > 0) {
+          let exportCount = 0
+
+          for (const mode of MODES) {
+            if (chainOutputs[mode]) {
+              const filename = `${MODE_NAMES[mode]}.md`
+              const fullPath = `${folderPath}/${filename}`
+              await writeTextFile(fullPath, chainOutputs[mode])
+              exportCount++
+            }
+          }
+
+          setStatus(`Exported ${exportCount} files ✓`)
+          return
+        }
+
+        // Generate All combined output: split by section headers
         const isCombined = content.includes("# PRD") && content.includes("# ARD")
 
         if (isCombined) {
-          // Split by section headers and save separately
           const sections = content.split(/\n\n---\n\n/)
           let exportCount = 0
 
@@ -512,11 +591,17 @@ if (chainGenerateBtn) {
           const data = JSON.parse(clean)
           const rendered = renderers[mode](data)
           results[mode] = rendered
+          chainRawOutputs[mode] = clean
         } catch (err: any) {
           console.error(`${mode} failed:`, err)
           results[mode] = `⚠️ **${MODE_NAMES[mode]} Failed**\n\n\`\`\`\n${String(err.message || err)}\n\`\`\``
         }
       }
+
+      // Store per-step outputs for tab bar
+      chainOutputs = { ...results }
+      isChainResult = true
+      editedTabs.clear()
 
       // Combine all results
       const combined = MODES.map(mode =>
@@ -524,6 +609,9 @@ if (chainGenerateBtn) {
       ).join("\n\n---\n\n")
 
       outputEl.value = combined
+
+      // Show tab bar and switch to first tab
+      showChainTabBar()
 
       const elapsed = Date.now() - startTime
       updateStats(elapsed, combined)
@@ -567,10 +655,12 @@ async function saveProject() {
   // Generate a name from input (first 30 chars)
   const name = inputEl.value.trim().substring(0, 50) || "Untitled Project"
 
+  const chainData = isChainResult ? JSON.stringify(chainOutputs) : null
+
   try {
     await db.execute(
-      "INSERT INTO projects (name, input, output, mode, stack) VALUES ($1, $2, $3, $4, $5)",
-      [name, inputEl.value, outputEl.value, compilerSelect.value, stackSelect.value]
+      "INSERT INTO projects (name, input, output, mode, stack, chain_outputs) VALUES ($1, $2, $3, $4, $5, $6)",
+      [name, inputEl.value, outputEl.value, compilerSelect.value, stackSelect.value, chainData]
     )
     setStatus("Project saved ✓")
     await refreshHistory()
@@ -594,6 +684,21 @@ async function loadProject(project: Project) {
         opt.classList.add("selected")
       }
     })
+  }
+
+  // Restore chain state if present
+  if (project.chain_outputs) {
+    try {
+      chainOutputs = JSON.parse(project.chain_outputs)
+      isChainResult = true
+      activeChainTab = "prd"
+      editedTabs.clear()
+      showChainTabBar()
+    } catch {
+      hideChainTabBar()
+    }
+  } else {
+    hideChainTabBar()
   }
 
   setStatus(`Loaded: ${project.name}`)
@@ -693,7 +798,11 @@ function toggleEditMode() {
     editIndicator?.classList.remove("hidden")
     setStatus("Editing enabled - make your changes")
   } else {
-    // Disable editing
+    // Disable editing — capture changes back to chain state if applicable
+    if (isChainResult && activeChainTab) {
+      chainOutputs[activeChainTab] = outputEl.value
+      setTabEdited(activeChainTab, true)
+    }
     outputEl.setAttribute("readonly", "")
     toggleEditBtn?.classList.remove("active")
     editIndicator?.classList.add("hidden")
@@ -777,8 +886,253 @@ document.addEventListener("keydown", (event) => {
   }
 })
 
+// ============================================================================
+// CHAIN TAB BAR EVENT HANDLERS
+// ============================================================================
+
+if (chainTabBar) {
+  chainTabBar.addEventListener("click", (e) => {
+    const target = (e.target as HTMLElement).closest(".chain-tab") as HTMLElement
+    if (target?.dataset.mode) {
+      switchChainTab(target.dataset.mode)
+    }
+  })
+}
+
+async function rechainFrom(startMode: string) {
+  const startIdx = MODES.indexOf(startMode as typeof MODES[number])
+  if (startIdx < 0) return
+
+  const selectedStack = STACK_PRESETS.find(s => s.id === stackSelect.value)
+
+  generateBtn.disabled = true
+  generateAllBtn.disabled = true
+  chainGenerateBtn.disabled = true
+  if (progressBar) progressBar.classList.add("active")
+
+  try {
+    for (let i = startIdx; i < MODES.length; i++) {
+      const mode = MODES[i]
+      setTabState(mode, "regenerating")
+      outputEl.value = `⛓️ Re-chain: Regenerating ${MODE_NAMES[mode]}...`
+
+      // Build context: original input + immediate predecessor's output
+      let chainInput = inputEl.value
+      if (i > 0) {
+        const prevMode = MODES[i - 1]
+        if (chainRawOutputs[prevMode]) {
+          chainInput += `\n\n--- ${MODE_NAMES[prevMode]} OUTPUT ---\n${chainRawOutputs[prevMode]}`
+        }
+      }
+
+      const userPrompt = makeUserPrompt(chainInput, mode, selectedStack)
+      const payload = `COMPILER: ${mode}\n${userPrompt}`
+
+      try {
+        const raw = await invoke<string>("compile_prd", { input: payload })
+        const clean = raw.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "")
+        const data = JSON.parse(clean)
+        const rendered = renderers[mode](data)
+
+        chainOutputs[mode] = rendered
+        chainRawOutputs[mode] = clean
+        setTabState(mode, "done")
+        setTabEdited(mode, false)
+      } catch (err: any) {
+        console.error(`Re-chain ${mode} failed:`, err)
+        chainOutputs[mode] = `⚠️ **${MODE_NAMES[mode]} Failed**\n\n\`\`\`\n${String(err.message || err)}\n\`\`\``
+        setTabState(mode, "error")
+      }
+    }
+
+    // Show the active tab's updated content
+    switchChainTab(activeChainTab)
+    setStatus("⛓️ Re-chain Complete ✓")
+  } catch (err: any) {
+    console.error(err)
+    setStatus("Re-chain Failed", "warn")
+  } finally {
+    generateBtn.disabled = false
+    generateAllBtn.disabled = false
+    chainGenerateBtn.disabled = false
+    if (progressBar) progressBar.classList.remove("active")
+  }
+}
+
+if (rechainBtn) {
+  rechainBtn.addEventListener("click", async () => {
+    if (!isChainResult || !activeChainTab) return
+
+    const currentIdx = MODES.indexOf(activeChainTab as typeof MODES[number])
+    if (currentIdx < 0 || currentIdx >= MODES.length - 1) {
+      setStatus("Nothing to re-chain after this step", "warn")
+      return
+    }
+
+    rechainBtn.disabled = true
+    await rechainFrom(MODES[currentIdx + 1])
+    rechainBtn.disabled = false
+  })
+}
+
 // Initialize database on load
 initDatabase()
+
+// ============================================================================
+// DESIGN MODE - Reference Image Upload
+// ============================================================================
+
+const designImageInput = document.getElementById("designImageInput") as HTMLInputElement
+const designImageDrop = document.getElementById("designImageDrop") as HTMLDivElement
+const designDropContent = document.getElementById("designDropContent") as HTMLDivElement
+const designImagePreview = document.getElementById("designImagePreview") as HTMLDivElement
+const designPreviewImg = document.getElementById("designPreviewImg") as HTMLImageElement
+const designImageName = document.getElementById("designImageName") as HTMLSpanElement
+const designImageClear = document.getElementById("designImageClear") as HTMLButtonElement
+
+let designImageAnalysis: string = ""
+
+// Analyze image using Canvas API for dominant colors
+async function analyzeImage(file: File): Promise<string> {
+  return new Promise((resolve) => {
+    const img = new Image()
+    const url = URL.createObjectURL(file)
+
+    img.onload = () => {
+      const canvas = document.createElement("canvas")
+      const size = 64 // Sample at small size for speed
+      canvas.width = size
+      canvas.height = size
+      const ctx = canvas.getContext("2d")!
+      ctx.drawImage(img, 0, 0, size, size)
+
+      const imageData = ctx.getImageData(0, 0, size, size)
+      const pixels = imageData.data
+
+      // Collect color samples
+      let totalR = 0, totalG = 0, totalB = 0
+      let bright = 0, dark = 0
+      let warm = 0, cool = 0
+      const colorCounts: Record<string, number> = {}
+      const pixelCount = size * size
+
+      for (let i = 0; i < pixels.length; i += 4) {
+        const r = pixels[i], g = pixels[i + 1], b = pixels[i + 2]
+        totalR += r; totalG += g; totalB += b
+
+        // Brightness
+        const lum = 0.299 * r + 0.587 * g + 0.114 * b
+        if (lum > 128) bright++; else dark++
+
+        // Temperature
+        if (r > b) warm++; else cool++
+
+        // Quantize to rough color buckets
+        const qr = Math.round(r / 64) * 64
+        const qg = Math.round(g / 64) * 64
+        const qb = Math.round(b / 64) * 64
+        const key = `rgb(${qr},${qg},${qb})`
+        colorCounts[key] = (colorCounts[key] || 0) + 1
+      }
+
+      // Top 5 dominant colors
+      const sorted = Object.entries(colorCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
+        .map(([color, count]) => `${color} (${Math.round(count / pixelCount * 100)}%)`)
+
+      const avgR = Math.round(totalR / pixelCount)
+      const avgG = Math.round(totalG / pixelCount)
+      const avgB = Math.round(totalB / pixelCount)
+
+      const brightness = bright > dark ? "light" : "dark"
+      const temperature = warm > cool ? "warm" : "cool"
+
+      const analysis = [
+        `REFERENCE IMAGE ANALYSIS:`,
+        `- Filename: ${file.name}`,
+        `- Dimensions: ${img.naturalWidth}x${img.naturalHeight}`,
+        `- Overall brightness: ${brightness}`,
+        `- Color temperature: ${temperature}`,
+        `- Average color: rgb(${avgR},${avgG},${avgB})`,
+        `- Dominant colors: ${sorted.join(", ")}`,
+        `- Use these colors and mood as reference for the design direction.`
+      ].join("\n")
+
+      URL.revokeObjectURL(url)
+      resolve(analysis)
+    }
+
+    img.onerror = () => {
+      URL.revokeObjectURL(url)
+      resolve("")
+    }
+
+    img.src = url
+  })
+}
+
+function showImagePreview(file: File) {
+  const url = URL.createObjectURL(file)
+  if (designPreviewImg) designPreviewImg.src = url
+  if (designImageName) designImageName.textContent = file.name
+  if (designDropContent) designDropContent.classList.add("hidden")
+  if (designImagePreview) designImagePreview.classList.remove("hidden")
+}
+
+function clearImagePreview() {
+  designImageAnalysis = ""
+  if (designPreviewImg) designPreviewImg.src = ""
+  if (designImageName) designImageName.textContent = ""
+  if (designDropContent) designDropContent.classList.remove("hidden")
+  if (designImagePreview) designImagePreview.classList.add("hidden")
+  if (designImageInput) designImageInput.value = ""
+}
+
+async function handleImageFile(file: File) {
+  if (!file.type.startsWith("image/")) {
+    setStatus("Please select an image file", "warn")
+    return
+  }
+  if (file.size > 10 * 1024 * 1024) {
+    setStatus("Image too large (max 10MB)", "warn")
+    return
+  }
+  showImagePreview(file)
+  designImageAnalysis = await analyzeImage(file)
+}
+
+if (designImageInput) {
+  designImageInput.addEventListener("change", () => {
+    const file = designImageInput.files?.[0]
+    if (file) handleImageFile(file)
+  })
+}
+
+if (designImageClear) {
+  designImageClear.addEventListener("click", (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    clearImagePreview()
+  })
+}
+
+// Drag and drop
+if (designImageDrop) {
+  designImageDrop.addEventListener("dragover", (e) => {
+    e.preventDefault()
+    designImageDrop.classList.add("dragover")
+  })
+  designImageDrop.addEventListener("dragleave", () => {
+    designImageDrop.classList.remove("dragover")
+  })
+  designImageDrop.addEventListener("drop", (e) => {
+    e.preventDefault()
+    designImageDrop.classList.remove("dragover")
+    const file = e.dataTransfer?.files?.[0]
+    if (file) handleImageFile(file)
+  })
+}
 
 // ---- Dependency Graph Toggle ----
 let isGraphVisible = false

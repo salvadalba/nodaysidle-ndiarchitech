@@ -669,6 +669,90 @@ textarea:not([readonly]) {
 }
 
 /* ============================================================================
+   CHAIN TAB BAR
+   ============================================================================ */
+
+.chain-tab-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--border-subtle);
+  background: rgba(255, 255, 255, 0.02);
+  gap: 12px;
+}
+
+.chain-tabs {
+  display: flex;
+  gap: 4px;
+}
+
+.chain-tab {
+  padding: 5px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  letter-spacing: 0.5px;
+  color: var(--text-tertiary);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  position: relative;
+}
+
+.chain-tab:hover {
+  color: var(--text-secondary);
+  background: var(--bg-hover);
+}
+
+.chain-tab.active {
+  color: var(--accent);
+  background: var(--accent-dim);
+  border-color: var(--accent-dim);
+}
+
+.chain-tab.edited::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 5px;
+  height: 5px;
+  background: var(--accent);
+  border-radius: 50%;
+}
+
+.chain-tab.regenerating {
+  color: var(--text-tertiary);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.rechain-btn {
+  padding: 5px 12px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--accent);
+  background: transparent;
+  border: 1px solid var(--accent-dim);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.rechain-btn:hover:not(:disabled) {
+  background: var(--accent-dim);
+  border-color: var(--accent);
+}
+
+.rechain-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ============================================================================
    UTILITY CLASSES
    ============================================================================ */
 
@@ -856,4 +940,99 @@ textarea:not([readonly]) {
   border-top: 1px solid var(--border-default);
   margin-top: 4px;
   padding-top: 12px;
+}
+
+/* ============================================================================
+   DESIGN MODE - Reference Image Upload
+   ============================================================================ */
+
+.design-image-section {
+  margin-top: var(--space-sm);
+}
+
+.design-image-section label {
+  margin-bottom: var(--space-sm);
+}
+
+.label-hint {
+  color: var(--text-tertiary);
+  font-weight: 400;
+  font-size: 11px;
+}
+
+.image-drop-zone {
+  position: relative;
+  border: 1px dashed var(--border-default);
+  border-radius: var(--radius-md);
+  padding: var(--space-lg);
+  text-align: center;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  background: var(--bg-input);
+}
+
+.image-drop-zone:hover {
+  border-color: rgba(255, 255, 255, 0.18);
+  background: var(--bg-hover);
+}
+
+.image-drop-zone.dragover {
+  border-color: var(--accent);
+  background: var(--accent-dim);
+}
+
+.image-drop-zone input[type="file"] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.drop-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-sm);
+  color: var(--text-tertiary);
+  font-size: 12px;
+}
+
+.drop-content svg {
+  opacity: 0.5;
+}
+
+.image-preview {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.image-preview img {
+  width: 60px;
+  height: 60px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-default);
+}
+
+.preview-info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.text-btn {
+  background: none;
+  border: none;
+  color: var(--accent);
+  cursor: pointer;
+  font-size: 11px;
+  padding: 0;
+  text-align: left;
+}
+
+.text-btn:hover {
+  text-decoration: underline;
 }

@@ -1,6 +1,6 @@
 import type { StackPreset } from "./stacks"
 
-export type CompilerMode = "prd" | "ard" | "trd" | "tasks" | "agent" | "image" | "video"
+export type CompilerMode = "prd" | "ard" | "trd" | "tasks" | "agent" | "image" | "video" | "design"
 
 export function makeUserPrompt(
   input: string,
@@ -33,6 +33,10 @@ export function makeUserPrompt(
     case "video":
       taskInstruction =
         "Generate a detailed video generation prompt. Include scene description, camera movement, subject motion, duration, visual style, color grading, mood, audio suggestions, and tool-specific prompts for Veo 3, Runway, Pika, and Kling."
+      break
+    case "design":
+      taskInstruction =
+        "Generate a culturally-intelligent design prompt. Detect the user's market/region from context and adapt the design direction accordingly. Include brand context, color palette with hex codes, typography direction, layout mockup prompt, 3 variations, and tool-specific prompts for Google Imagen 3, Minimax, Midjourney, DALL-E 3, and Stable Diffusion XL."
       break
   }
 

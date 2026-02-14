@@ -244,4 +244,42 @@ export const STACK_PRESETS: StackPreset[] = [
             "Edge-deployed for low latency",
         ],
     },
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 🤖 AI & LOCAL INFERENCE
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    {
+        id: "mlx-llm-runner",
+        name: "Local LLM Runner (MLX)",
+        description: "Native macOS app for running AI models locally on Apple Silicon",
+        frontend: [
+            "SwiftUI 6",
+            "Markdown rendering (swift-markdown-ui)",
+            "Syntax highlighting",
+            "StreamingText view",
+        ],
+        backend: [
+            "Swift 6",
+            "MLX Swift (apple/mlx-swift)",
+            "Structured Concurrency (async/await)",
+            "Observation framework",
+        ],
+        database: [
+            "SwiftData (conversations, settings)",
+            "File system (model storage ~/Models/)",
+        ],
+        notes: [
+            "macOS 15+ target, Apple Silicon required (M1/M2/M3/M4)",
+            "MLX uses unified memory — 16GB RAM can run 7B-13B models",
+            "Minimal UI: single window, no heavy frameworks, low memory footprint",
+            "Stream tokens to UI for responsive chat experience",
+            "Download models from Hugging Face (MLX format)",
+            "Support popular models: Llama 3, Mistral, Qwen, Phi",
+            "Local-first: no internet required after model download",
+            "100% private — no data leaves the device",
+            "Lightweight SwiftUI — avoid animations and effects that consume RAM",
+            "Lazy loading for conversation history",
+        ],
+    },
 ]
