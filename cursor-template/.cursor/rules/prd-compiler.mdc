@@ -1,0 +1,134 @@
+---
+description: PRD Compiler - Generate product documentation from ideas before implementing
+globs: **/*
+alwaysApply: true
+---
+
+# PRD Compiler Integration
+
+You have access to a powerful documentation compiler located at:
+`/Volumes/omarchyuser/projects/prd-compiler`
+
+This tool generates structured product documentation from simple ideas, helping you plan before you code.
+
+## When to Use
+
+**ALWAYS use the PRD Compiler when the user wants to:**
+- Build a new app or feature from scratch
+- Plan an implementation before coding
+- Generate product/architecture/technical documentation
+- Create AI image or video prompts
+
+**Do NOT use for:**
+- Simple bug fixes
+- Small tweaks to existing code
+- Questions about existing code
+
+## Commands
+
+### ⚠️ IMPORTANT: These commands take 2-5 minutes to complete!
+The PRD Compiler makes multiple AI calls. **Be patient and wait for completion.** Do NOT timeout or interrupt.
+
+### Chain Generate (Recommended for new projects)
+Generates all 5 interconnected docs (PRD → ARD → TRD → TASKS → AGENT):
+
+```bash
+cd /Volumes/omarchyuser/projects/prd-compiler && npx tsx src/cli.ts chain "<user's idea>" --stack <stack-id> --output <current-project-path>/docs
+```
+
+**IMPORTANT:**
+- Replace `<current-project-path>` with the actual path of the current project (use `pwd` to get it).
+- This command takes 2-5 minutes. **WAIT FOR IT TO COMPLETE.** Do not timeout.
+
+### Quick Single Document (Faster - ~30 seconds each)
+If the chain command is too slow, generate docs one at a time:
+
+### Single Document
+```bash
+cd /Volumes/omarchyuser/projects/prd-compiler && npx tsx src/cli.ts generate "<idea>" --mode <mode> --stack <stack-id>
+```
+Modes: `prd`, `ard`, `trd`, `tasks`, `agent`
+
+### Image Prompts (for AI art generation)
+```bash
+cd /Volumes/omarchyuser/projects/prd-compiler && npx tsx src/cli.ts image "<description>"
+```
+Generates prompts for Midjourney, DALL-E, and Stable Diffusion.
+
+### Video Prompts (for AI video generation)
+```bash
+cd /Volumes/omarchyuser/projects/prd-compiler && npx tsx src/cli.ts video "<description>"
+```
+Generates prompts for Veo 3, Runway, Pika, and Kling.
+
+## Available Stack Presets
+
+Choose the appropriate stack based on the user's target platform:
+
+| Stack ID | Platform | Description |
+|----------|----------|-------------|
+| `swift-ios` | iOS | Native iOS with SwiftUI 6, SwiftData, WidgetKit |
+| `swift-macos` | macOS | Native macOS with SwiftUI 6, SwiftData, CoreML |
+| `swift-macos-utility` | macOS | Menu bar apps, utilities, global shortcuts |
+| `nextjs-fullstack` | Web | Next.js 15, App Router, Server Actions, Prisma |
+| `tauri-localfirst` | Desktop | Cross-platform desktop with Rust + Web frontend |
+| `flutter-mobile` | Mobile | Cross-platform iOS + Android |
+| `kotlin-android` | Android | Native Android with Jetpack Compose |
+| `cli-tool` | CLI | Rust command-line tools with clap |
+| `astro-site` | Web | Static sites, landing pages, content sites |
+| `realtime-app` | Web | Real-time collaborative apps with WebSockets/CRDTs |
+
+## Workflow
+
+When the user asks to build something new:
+
+1. **First, determine the current project path:**
+   ```bash
+   pwd
+   ```
+
+2. **Generate documentation:**
+   ```bash
+   cd /Volumes/omarchyuser/projects/prd-compiler && npx tsx src/cli.ts chain "<user's idea - be detailed!>" --stack <appropriate-stack> --output <project-path>/docs
+   ```
+
+3. **Read the generated docs:**
+   - `docs/PRD.md` - Product requirements, vision, features
+   - `docs/ARD.md` - Architecture decisions, system design
+   - `docs/TRD.md` - Technical specs, API contracts, data models
+   - `docs/TASKS.md` - Step-by-step implementation tasks
+   - `docs/AGENT.md` - Detailed prompts for each component
+
+4. **Implement following TASKS.md order** - Each task has clear acceptance criteria
+
+5. **Reference TRD.md** for technical decisions (don't reinvent the wheel)
+
+6. **Use AGENT.md prompts** when implementing each component
+
+## Example Interaction
+
+User: "Build me a habit tracker app for iPhone with streaks and reminders"
+
+Your actions:
+1. Get project path: `pwd` → `/Users/omar/projects/habit-tracker`
+2. Run: `cd /Volumes/omarchyuser/projects/prd-compiler && npx tsx src/cli.ts chain "habit tracker app with streaks, daily reminders, streak visualization, and motivational notifications" --stack swift-ios --output /Users/omar/projects/habit-tracker/docs`
+3. Read the generated docs in `./docs/`
+4. Start implementing from Task 1 in TASKS.md
+5. Create files following the architecture in ARD.md
+
+## Output Documents Explained
+
+| Document | Contains |
+|----------|----------|
+| **PRD** | Vision, goals, user stories, features, success metrics |
+| **ARD** | System architecture, tech decisions, component diagram, trade-offs |
+| **TRD** | API specs, data models, module interfaces, testing strategy |
+| **TASKS** | Epics broken into stories with acceptance criteria |
+| **AGENT** | Copy-paste prompts optimized for AI code generation |
+
+## Tips for Best Results
+
+1. **Be specific in the idea description** - Include key features, differentiators, and target audience
+2. **Choose the right stack** - This affects the architecture recommendations
+3. **Read TRD.md carefully** - It contains the data models and API contracts
+4. **Follow TASKS.md in order** - Tasks are sequenced for dependencies
