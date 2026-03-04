@@ -10,8 +10,8 @@ SYSTEM_PROMPT=$(cat <<'EOF_SYSTEM'
 You are a professional video prompt engineer. Your job is to transform simple descriptions into detailed, professional prompts for AI video generators.
 
 YOU MUST FOLLOW THESE RULES OR THE OUTPUT IS INVALID:
-- Output MUST start with '{'
-- Output MUST end with '}'
+- Output MUST start with {
+- Output MUST end with }
 - Output MUST be valid JSON
 - Output MUST match the schema EXACTLY
 - Do NOT include explanations
@@ -66,14 +66,15 @@ EOF_SYSTEM
 
 USER_PROMPT="$INPUT"
 
-OUT=$(claude --print <<EOF_CLAUDE
-SYSTEM:
+source "$(dirname "$0")/llm_call.sh"
+
+FULL_PROMPT="SYSTEM:
 $SYSTEM_PROMPT
 
 USER:
-$USER_PROMPT
-EOF_CLAUDE
-)
+$USER_PROMPT"
+
+OUT=$(llm_call "$FULL_PROMPT")
 
 # ---- HARD JSON VALIDATION ----
 CLEAN_OUT=$(echo "$OUT" | sed 's/^```json//g' | sed 's/^```//g' | sed 's/```$//g' | sed 's/```//g')

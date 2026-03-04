@@ -59,24 +59,19 @@ Return JSON that matches this schema EXACTLY:
 EOF
 )
 
-USER_PROMPT=$(cat <<EOF
-INPUT:
-$INPUT
+# The TypeScript app runs the prompt construction logic now.
+# We treat stdin as the ready-to-go User Prompt.
+USER_PROMPT="$INPUT"
 
-TASK:
-Generate a Technical Requirements Document (TRD) using the schema above.
-Keep API contracts and modules concrete and implementable.
-EOF
-)
+source "$(dirname "$0")/llm_call.sh"
 
-OUT=$(claude --print <<EOF
-SYSTEM:
+FULL_PROMPT="SYSTEM:
 $SYSTEM_PROMPT
 
 USER:
-$USER_PROMPT
-EOF
-)
+$USER_PROMPT"
+
+OUT=$(llm_call "$FULL_PROMPT")
 
 if ! command -v jq >/dev/null 2>&1; then
   echo "jq is required (brew install jq)" >&2

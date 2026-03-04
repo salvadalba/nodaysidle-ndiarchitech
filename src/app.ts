@@ -1,4 +1,5 @@
 import { STACK_PRESETS } from "./stacks"
+import { VERTICALS } from "./verticals"
 import { parseChainOutput, renderDependencyGraph } from "./graph"
 import { makeUserPrompt } from "./compilerPrompt"
 import { invoke } from "@tauri-apps/api/core"
@@ -10,6 +11,11 @@ import { renderAGENT } from "./renderers/renderAGENT"
 import { renderIMAGE } from "./renderers/renderIMAGE"
 import { renderVIDEO } from "./renderers/renderVIDEO"
 import { renderDESIGN } from "./renderers/renderDESIGN"
+import { renderADVISOR } from "./renderers/renderADVISOR"
+import { renderAUDIT } from "./renderers/renderAUDIT"
+import { renderANALYZE } from "./renderers/renderANALYZE"
+import { renderCOMPETE } from "./renderers/renderCOMPETE"
+import { generateClaudeMd, generateBuildSh } from "./scaffold"
 
 import { save, open } from "@tauri-apps/plugin-dialog"
 import { writeTextFile } from "@tauri-apps/plugin-fs"
@@ -69,6 +75,21 @@ const saveProjectBtn = document.getElementById("saveProject") as HTMLButtonEleme
 const historyListEl = document.getElementById("historyList") as HTMLDivElement
 const chainTabBar = document.getElementById("chainTabBar") as HTMLDivElement
 const rechainBtn = document.getElementById("rechainBtn") as HTMLButtonElement
+const verticalSelect = document.getElementById("vertical") as HTMLSelectElement
+const verticalWrapper = document.getElementById("verticalWrapper") as HTMLDivElement
+const analyzeFolderSection = document.getElementById("analyzeFolderSection") as HTMLDivElement
+const analyzeFolderBtn = document.getElementById("analyzeFolderBtn") as HTMLButtonElement
+const analyzeFolderPath = document.getElementById("analyzeFolderPath") as HTMLSpanElement
+const auditChainNotice = document.getElementById("auditChainNotice") as HTMLDivElement
+const competeUrlSection = document.getElementById("competeUrlSection") as HTMLDivElement
+const competeUrlInput = document.getElementById("competeUrlInput") as HTMLInputElement
+
+/** Always use Claude CLI — no provider switching needed */
+function getLlmParams(): { llmProvider: string; llmModel: string; llmApiKey: string } {
+  return { llmProvider: "claude", llmModel: "", llmApiKey: "" }
+}
+
+let selectedFolderPath = ""
 
 // ---- Chain Tab Bar Functions ----
 function showChainTabBar() {
@@ -168,7 +189,7 @@ function updateStats(timeMs: number, outputText: string) {
 function updateCopyButtons() {
   const mode = compilerSelect.value
   const isAgent = mode === "agent"
-  const isMediaMode = mode === "image" || mode === "video" || mode === "design"
+  const isMediaMode = mode === "image" || mode === "video" || mode === "design" || mode === "advisor" || mode === "audit" || mode === "analyze" || mode === "compete"
 
   // Toggle visibility of agent-specific buttons
   if (copyAgentBtn) copyAgentBtn.style.display = isAgent ? "inline-flex" : "none"
@@ -182,6 +203,20 @@ function updateCopyButtons() {
   // Show/hide design image upload section
   const designImageSection = document.getElementById("designImageSection")
   if (designImageSection) designImageSection.style.display = mode === "design" ? "block" : "none"
+
+  // Show/hide vertical selector (only for document modes: prd, ard, trd, tasks, agent)
+  if (verticalWrapper) verticalWrapper.style.display = isMediaMode ? "none" : "block"
+
+  // Show/hide analyze folder picker
+  if (analyzeFolderSection) analyzeFolderSection.style.display = mode === "analyze" ? "block" : "none"
+
+  // Show/hide compete URL input
+  if (competeUrlSection) competeUrlSection.style.display = mode === "compete" ? "block" : "none"
+
+  // Show/hide audit chain notice
+  if (auditChainNotice) {
+    auditChainNotice.style.display = (mode === "audit" && isChainResult && Object.keys(chainOutputs).length > 0) ? "flex" : "none"
+  }
 }
 
 let statusTimeout: number | undefined
@@ -227,7 +262,7 @@ async function copyText(text: string) {
 }
 
 // Timeout wrapper for async operations
-const GENERATION_TIMEOUT_MS = 120000 // 2 minutes
+const GENERATION_TIMEOUT_MS = 240000 // 4 minutes
 
 async function withTimeout<T>(promise: Promise<T>, ms: number, errorMsg: string): Promise<T> {
   const timeout = new Promise<never>((_, reject) =>
@@ -322,21 +357,51 @@ if (generateBtn) {
 
     try {
       const selectedStack = STACK_PRESETS.find(s => s.id === stackSelect.value)
+      const vertical = getSelectedVertical()
 
-      // For design mode, append image analysis if available
+      // Build input text based on mode
       let inputText = inputEl.value
+
       if (compilerSelect.value === "design" && designImageAnalysis) {
         inputText += `\n\n${designImageAnalysis}`
       }
 
-      const userPrompt = makeUserPrompt(
-        inputText,
-        compilerSelect.value,
-        selectedStack
-      )
+      // AUDIT: auto-feed chain output if available
+      if (compilerSelect.value === "audit" && isChainResult && Object.keys(chainOutputs).length > 0) {
+        const chainDocs = MODES.map(m =>
+          chainOutputs[m] ? `=== ${MODE_NAMES[m]} ===\n${chainOutputs[m]}` : ""
+        ).filter(Boolean).join("\n\n---\n\n")
+        inputText = inputText
+          ? `${inputText}\n\n--- CHAIN OUTPUT TO AUDIT ---\n${chainDocs}`
+          : chainDocs
+      }
 
-      const payload = `COMPILER: ${compilerSelect.value}
-${userPrompt}`
+      // ANALYZE: use folder path instead of text input
+      if (compilerSelect.value === "analyze") {
+        if (!selectedFolderPath) {
+          throw new Error("Please select a project folder first using the folder picker.")
+        }
+        inputText = selectedFolderPath
+      }
+
+      // COMPETE: build payload with URL as first line (bash script uses head -1)
+      let payload: string
+      if (compilerSelect.value === "compete") {
+        const url = competeUrlInput?.value?.trim()
+        if (!url) {
+          throw new Error("Please enter a competitor URL to analyze.")
+        }
+        const notes = inputText.trim()
+        payload = `COMPILER: compete\n${url}${notes ? "\n" + notes : ""}`
+      } else {
+        const userPrompt = makeUserPrompt(
+          inputText,
+          compilerSelect.value,
+          selectedStack,
+          vertical
+        )
+        payload = `COMPILER: ${compilerSelect.value}\n${userPrompt}`
+      }
 
       if (!isTauri()) {
         outputEl.value = "⚠️ Running in browser mode.\n\nUse `npx tauri dev` to generate outputs."
@@ -344,9 +409,9 @@ ${userPrompt}`
       }
 
       const raw = await withTimeout(
-        invoke<string>("compile_prd", { input: payload }),
+        invoke<string>("compile_prd", { input: payload, ...getLlmParams() }),
         GENERATION_TIMEOUT_MS,
-        "Generation timed out after 2 minutes. Claude CLI may be unresponsive."
+        "Generation timed out after 4 minutes. Claude CLI may be unresponsive."
       )
 
       const clean = raw
@@ -388,6 +453,18 @@ ${userPrompt}`
         case "design":
           outputEl.value = renderDESIGN(data)
           break
+        case "advisor":
+          outputEl.value = renderADVISOR(data)
+          break
+        case "audit":
+          outputEl.value = renderAUDIT(data)
+          break
+        case "analyze":
+          outputEl.value = renderANALYZE(data)
+          break
+        case "compete":
+          outputEl.value = renderCOMPETE(data)
+          break
         default:
           outputEl.value = JSON.stringify(data, null, 2)
       }
@@ -412,13 +489,14 @@ ${userPrompt}`
 }
 
 // ---- Generate All (PRD + ARD + TRD + TASKS + AGENT) ----
-const MODES = ["prd", "ard", "trd", "tasks", "agent"] as const
+const MODES = ["prd", "ard", "trd", "tasks", "agent", "design"] as const
 const MODE_NAMES: Record<string, string> = {
   prd: "PRD",
   ard: "ARD",
   trd: "TRD",
   tasks: "TASKS",
-  agent: "AGENT"
+  agent: "AGENT",
+  design: "DESIGN"
 }
 
 const renderers: Record<string, (data: any) => string> = {
@@ -429,7 +507,11 @@ const renderers: Record<string, (data: any) => string> = {
   agent: renderAGENT,
   image: renderIMAGE,
   video: renderVIDEO,
-  design: renderDESIGN
+  design: renderDESIGN,
+  advisor: renderADVISOR,
+  audit: renderAUDIT,
+  analyze: renderANALYZE,
+  compete: renderCOMPETE
 }
 
 if (generateAllBtn) {
@@ -445,16 +527,17 @@ if (generateAllBtn) {
 
     const results: string[] = []
     const selectedStack = STACK_PRESETS.find(s => s.id === stackSelect.value)
+    const vertical = getSelectedVertical()
 
     try {
       for (const mode of MODES) {
         outputEl.value = `Generating ${MODE_NAMES[mode]}...`
 
         try {
-          const userPrompt = makeUserPrompt(inputEl.value, mode, selectedStack)
+          const userPrompt = makeUserPrompt(inputEl.value, mode, selectedStack, vertical)
           const payload = `COMPILER: ${mode}\n${userPrompt}`
 
-          const raw = await invoke<string>("compile_prd", { input: payload })
+          const raw = await invoke<string>("compile_prd", { input: payload, ...getLlmParams() })
           const clean = raw.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "")
           const data = JSON.parse(clean)
           const rendered = renderers[mode](data)
@@ -507,7 +590,30 @@ if (exportFolderBtn) {
             }
           }
 
-          setStatus(`Exported ${exportCount} files ✓`)
+          // Auto-generate CLAUDE.md + build.sh from chain data
+          try {
+            const selectedStack = STACK_PRESETS.find(s => s.id === stackSelect.value)
+            const claudeMd = generateClaudeMd(chainRawOutputs, selectedStack)
+            await writeTextFile(`${folderPath}/CLAUDE.md`, claudeMd)
+            exportCount++
+
+            // Derive project name for build.sh header
+            let projName = "Untitled Project"
+            if (chainRawOutputs.agent) {
+              try { projName = JSON.parse(chainRawOutputs.agent).project_name ?? projName } catch {}
+            }
+            if (projName === "Untitled Project" && chainRawOutputs.prd) {
+              try { projName = JSON.parse(chainRawOutputs.prd).product_name ?? JSON.parse(chainRawOutputs.prd).title ?? projName } catch {}
+            }
+
+            const buildSh = generateBuildSh(projName)
+            await writeTextFile(`${folderPath}/build.sh`, buildSh)
+            exportCount++
+          } catch (scaffoldErr) {
+            console.warn("Scaffold generation failed (non-fatal):", scaffoldErr)
+          }
+
+          setStatus(`Exported ${exportCount} files (incl. CLAUDE.md + build.sh) ✓`)
           return
         }
 
@@ -519,10 +625,10 @@ if (exportFolderBtn) {
           let exportCount = 0
 
           for (const section of sections) {
-            const match = section.match(/^# (PRD|ARD|TRD|TASKS|AGENT)/)
+            const match = section.match(/^# (PRD|ARD|TRD|TASKS|AGENT|DESIGN)/)
             if (match) {
               const docType = match[1]
-              const docContent = section.replace(/^# (PRD|ARD|TRD|TASKS|AGENT)\n\n/, "")
+              const docContent = section.replace(/^# (PRD|ARD|TRD|TASKS|AGENT|DESIGN)\n\n/, "")
               const filename = `${docType}.md`
               const fullPath = `${folderPath}/${filename}`
               await writeTextFile(fullPath, docContent)
@@ -562,6 +668,7 @@ if (chainGenerateBtn) {
     const startTime = Date.now()
     const results: Record<string, string> = {}
     const selectedStack = STACK_PRESETS.find(s => s.id === stackSelect.value)
+    const vertical = getSelectedVertical()
 
     // Start with user's original input
     let contextInput = inputEl.value
@@ -580,13 +687,15 @@ if (chainGenerateBtn) {
           chainInput += `\n\n--- TRD OUTPUT ---\n${results.trd}`
         } else if (mode === "agent" && results.tasks) {
           chainInput += `\n\n--- TASKS OUTPUT ---\n${results.tasks}`
+        } else if (mode === "design" && results.agent) {
+          chainInput += `\n\n--- AGENT OUTPUT ---\n${results.agent}`
         }
 
-        const userPrompt = makeUserPrompt(chainInput, mode, selectedStack)
+        const userPrompt = makeUserPrompt(chainInput, mode, selectedStack, vertical)
         const payload = `COMPILER: ${mode}\n${userPrompt}`
 
         try {
-          const raw = await invoke<string>("compile_prd", { input: payload })
+          const raw = await invoke<string>("compile_prd", { input: payload, ...getLlmParams() })
           const clean = raw.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "")
           const data = JSON.parse(clean)
           const rendered = renderers[mode](data)
@@ -632,29 +741,51 @@ if (chainGenerateBtn) {
 
 // ---- Project History (SQLite) ----
 async function initDatabase() {
-  if (!isTauri()) return
+  if (!isTauri()) {
+    console.warn("Not in Tauri environment, skipping DB init")
+    return
+  }
   try {
+    console.log("[DB] Loading sqlite:nodaysidle.db...")
     db = await Database.load("sqlite:nodaysidle.db")
+    console.log("[DB] Database loaded successfully")
     dbReady = true
     await refreshHistory()
+    console.log("[DB] History refreshed, dbReady =", dbReady)
   } catch (err) {
-    console.error("Failed to init database:", err)
+    console.error("[DB] Failed to init database:", err)
+    setStatus("Project history unavailable", "warn")
   }
 }
 
 async function saveProject() {
-  if (!dbReady || !db) {
-    setStatus("Database still loading...", "warn")
-    return
+  console.log("[DB] Save clicked. dbReady =", dbReady, "db =", !!db)
+
+  if (!db || !dbReady) {
+    // Try to re-initialize if DB wasn't ready
+    if (isTauri() && !db) {
+      setStatus("Connecting to database...", "warn")
+      try {
+        db = await Database.load("sqlite:nodaysidle.db")
+        dbReady = true
+        console.log("[DB] Late init succeeded")
+      } catch (err) {
+        console.error("[DB] Late init failed:", err)
+        setStatus("Database unavailable - cannot save", "warn")
+        return
+      }
+    } else {
+      setStatus("Database not available", "warn")
+      return
+    }
   }
+
   if (!outputEl.value.trim()) {
-    setStatus("Nothing to save", "warn")
+    setStatus("Nothing to save — generate first", "warn")
     return
   }
 
-  // Generate a name from input (first 30 chars)
   const name = inputEl.value.trim().substring(0, 50) || "Untitled Project"
-
   const chainData = isChainResult ? JSON.stringify(chainOutputs) : null
 
   try {
@@ -664,9 +795,9 @@ async function saveProject() {
     )
     setStatus("Project saved ✓")
     await refreshHistory()
-  } catch (err) {
-    console.error("Save failed:", err)
-    setStatus("Save failed", "warn")
+  } catch (err: any) {
+    console.error("[DB] Save failed:", err)
+    setStatus(`Save failed: ${err?.message || err}`, "warn")
   }
 }
 
@@ -771,9 +902,23 @@ function escapeHtml(text: string): string {
   return div.innerHTML
 }
 
+// Quick template chips
+document.querySelectorAll(".template-chip").forEach(chip => {
+  chip.addEventListener("click", () => {
+    const template = (chip as HTMLElement).dataset.template || ""
+    inputEl.value = template
+    inputEl.focus()
+    // Place cursor at end of template text
+    inputEl.setSelectionRange(template.length, template.length)
+  })
+})
+
 // Save project button
 if (saveProjectBtn) {
   saveProjectBtn.addEventListener("click", saveProject)
+  console.log("[DB] Save button wired")
+} else {
+  console.warn("[DB] saveProjectBtn not found in DOM")
 }
 
 // ============================================================================
@@ -904,6 +1049,7 @@ async function rechainFrom(startMode: string) {
   if (startIdx < 0) return
 
   const selectedStack = STACK_PRESETS.find(s => s.id === stackSelect.value)
+  const vertical = getSelectedVertical()
 
   generateBtn.disabled = true
   generateAllBtn.disabled = true
@@ -925,11 +1071,11 @@ async function rechainFrom(startMode: string) {
         }
       }
 
-      const userPrompt = makeUserPrompt(chainInput, mode, selectedStack)
+      const userPrompt = makeUserPrompt(chainInput, mode, selectedStack, vertical)
       const payload = `COMPILER: ${mode}\n${userPrompt}`
 
       try {
-        const raw = await invoke<string>("compile_prd", { input: payload })
+        const raw = await invoke<string>("compile_prd", { input: payload, ...getLlmParams() })
         const clean = raw.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "")
         const data = JSON.parse(clean)
         const rendered = renderers[mode](data)
@@ -977,6 +1123,43 @@ if (rechainBtn) {
 
 // Initialize database on load
 initDatabase()
+  .then(() => { if (dbReady) setStatus("Project history ready") })
+  .catch((err) => setStatus(`DB init failed: ${err}`, "warn"))
+
+// ============================================================================
+// VERTICAL HELPER
+// ============================================================================
+
+function getSelectedVertical() {
+  if (!verticalSelect || !verticalSelect.value) return undefined
+  return VERTICALS.find(v => v.id === verticalSelect.value)
+}
+
+// ============================================================================
+// ANALYZE MODE - Folder Picker
+// ============================================================================
+
+if (analyzeFolderBtn) {
+  analyzeFolderBtn.addEventListener("click", async () => {
+    try {
+      const folderPath = await open({
+        directory: true,
+        title: "Select project folder to analyze"
+      })
+
+      if (folderPath && typeof folderPath === "string") {
+        selectedFolderPath = folderPath
+        if (analyzeFolderPath) {
+          analyzeFolderPath.textContent = folderPath
+          analyzeFolderPath.title = folderPath
+        }
+      }
+    } catch (err) {
+      console.error("Folder picker failed", err)
+      setStatus("Failed to select folder", "warn")
+    }
+  })
+}
 
 // ============================================================================
 // DESIGN MODE - Reference Image Upload
@@ -1142,10 +1325,21 @@ if (toggleGraphBtn) {
     isGraphVisible = !isGraphVisible
 
     if (isGraphVisible) {
-      const content = outputEl.value
+      // Use chain data if available, otherwise fall back to textarea
+      let content = ""
+      if (isChainResult && Object.keys(chainOutputs).length > 0) {
+        const MODES = ["prd", "ard", "trd", "tasks", "agent"] as const
+        const MODE_HEADERS: Record<string, string> = { prd: "PRD", ard: "ARD", trd: "TRD", tasks: "TASKS", agent: "AGENT" }
+        content = MODES
+          .filter(m => chainOutputs[m])
+          .map(m => `# ${MODE_HEADERS[m]}\n\n${chainOutputs[m]}`)
+          .join("\n\n---\n\n")
+      } else {
+        content = outputEl.value
+      }
 
       // Check if there's output to visualize
-      if (!content.trim() || !content.includes("# PRD")) {
+      if (!content.trim()) {
         setStatus("Generate Chain output first to view graph", "warn")
         isGraphVisible = false
         return

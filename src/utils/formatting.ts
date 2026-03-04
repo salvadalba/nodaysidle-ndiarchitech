@@ -8,9 +8,22 @@
  * @param items - Array of strings to format
  * @returns Markdown formatted list or "_None_" if empty
  */
-export function list(items?: string[]): string {
+export function list(items?: unknown[]): string {
   if (!items || items.length === 0) return "_None_"
-  return items.map(i => `- ${i}`).join("\n")
+  return items.map(i => {
+    if (typeof i === "string") return `- ${i}`
+    if (typeof i === "object" && i !== null) {
+      const obj = i as Record<string, unknown>
+      // Handle common LLM patterns: {name, description}, {title, details}, etc.
+      const name = obj.name ?? obj.title ?? obj.feature ?? ""
+      const desc = obj.description ?? obj.details ?? obj.summary ?? ""
+      if (name && desc) return `- **${name}:** ${desc}`
+      if (name) return `- ${name}`
+      // Fallback: join all values
+      return `- ${Object.values(obj).filter(Boolean).join(" — ")}`
+    }
+    return `- ${String(i)}`
+  }).join("\n")
 }
 
 /**
@@ -18,9 +31,20 @@ export function list(items?: string[]): string {
  * @param items - Array of strings to format
  * @returns Markdown formatted numbered list or "_None_" if empty
  */
-export function numberedList(items?: string[]): string {
+export function numberedList(items?: unknown[]): string {
   if (!items || items.length === 0) return "_None_"
-  return items.map((i, idx) => `${idx + 1}. ${i}`).join("\n")
+  return items.map((i, idx) => {
+    if (typeof i === "string") return `${idx + 1}. ${i}`
+    if (typeof i === "object" && i !== null) {
+      const obj = i as Record<string, unknown>
+      const name = obj.name ?? obj.title ?? obj.feature ?? ""
+      const desc = obj.description ?? obj.details ?? obj.summary ?? ""
+      if (name && desc) return `${idx + 1}. **${name}:** ${desc}`
+      if (name) return `${idx + 1}. ${name}`
+      return `${idx + 1}. ${Object.values(obj).filter(Boolean).join(" — ")}`
+    }
+    return `${idx + 1}. ${String(i)}`
+  }).join("\n")
 }
 
 /**

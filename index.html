@@ -10,23 +10,25 @@
   <header data-tauri-drag-region>
     <div class="header-logo">NODAYSIDLE</div>
     <div class="stats-bar">
-      <span>
-        <svg class="icon" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5">
+      <span class="stat-item" title="Generation time">
+        <svg class="icon" width="14" height="14" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5">
           <circle cx="6" cy="6" r="5"/>
           <path d="M6 3v3l2 1"/>
         </svg>
         <span id="statTime">--</span>
       </span>
-      <span>
-        <svg class="icon" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5">
+      <span class="stat-item" title="Token usage">
+        <svg class="icon" width="14" height="14" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5">
           <rect x="1" y="4" width="2" height="7" rx="0.5"/>
           <rect x="5" y="2" width="2" height="9" rx="0.5"/>
           <rect x="9" y="1" width="2" height="10" rx="0.5"/>
         </svg>
         <span id="statTokens">--</span>
       </span>
+      <span class="llm-badge-inline">Claude CLI</span>
     </div>
   </header>
+
 
   <main>
     <!-- Left Pane: Input & Controls -->
@@ -46,14 +48,22 @@
                 </svg>
               </div>
               <div class="select-options" id="compiler-options">
+                <div class="option-group-header">Document Chain</div>
                 <div class="option selected" data-value="prd">PRD — Product Requirements</div>
                 <div class="option" data-value="ard">ARD — Architecture Requirements</div>
                 <div class="option" data-value="trd">TRD — Technical Requirements</div>
                 <div class="option" data-value="tasks">TASKS — Epics + tasks</div>
                 <div class="option" data-value="agent">AGENT — CLI agent prompts</div>
-                <div class="option divider" data-value="image">IMAGE — AI image prompts</div>
+                <div class="option-group-header">Creative</div>
+                <div class="option" data-value="image">IMAGE — AI image prompts</div>
                 <div class="option" data-value="video">VIDEO — AI video prompts</div>
                 <div class="option" data-value="design">DESIGN — Cultural design prompts</div>
+                <div class="option-group-header">Strategy</div>
+                <div class="option" data-value="advisor">ADVISOR — Stack recommendation</div>
+                <div class="option" data-value="audit">AUDIT — Quality &amp; risk audit</div>
+                <div class="option-group-header">Research</div>
+                <div class="option" data-value="analyze">ANALYZE — Reverse-engineer project</div>
+                <div class="option" data-value="compete">COMPETE — Build a better X</div>
               </div>
               <input type="hidden" id="compiler" value="prd">
             </div>
@@ -62,12 +72,53 @@
             <label for="stack">Tech Stack Preset</label>
             <select id="stack"></select>
           </div>
-
+          <div id="verticalWrapper">
+            <label for="vertical">Industry Vertical <span class="label-hint">(optional)</span></label>
+            <select id="vertical">
+              <option value="">None</option>
+              <option value="saas">SaaS Dashboard</option>
+              <option value="localfirst">Local-First Productivity</option>
+              <option value="ai-tooling">AI Tooling</option>
+            </select>
+          </div>
         </div>
 
-        <div>
+        <div class="input-wrapper">
           <label for="input">Project Idea / Context</label>
           <textarea id="input" placeholder="Describe your project idea here..."></textarea>
+          <div class="quick-templates">
+            <button class="template-chip" data-template="A macOS menu bar app that ">Menu Bar App</button>
+            <button class="template-chip" data-template="A SaaS dashboard for ">SaaS Dashboard</button>
+            <button class="template-chip" data-template="A CLI tool that ">CLI Tool</button>
+            <button class="template-chip" data-template="An API service that ">API Service</button>
+            <button class="template-chip" data-template="A mobile app that ">Mobile App</button>
+          </div>
+        </div>
+
+        <!-- Analyze Folder Picker - only visible in ANALYZE mode -->
+        <div id="analyzeFolderSection" class="analyze-folder-section" style="display: none;">
+          <label>Project Folder</label>
+          <div class="folder-picker">
+            <button id="analyzeFolderBtn" class="secondary-btn">Select Project Folder</button>
+            <span id="analyzeFolderPath" class="folder-path">No folder selected</span>
+          </div>
+        </div>
+
+        <!-- Compete URL Input - only visible in COMPETE mode -->
+        <div id="competeUrlSection" class="compete-url-section" style="display: none;">
+          <label>Competitor URL</label>
+          <input type="url" id="competeUrlInput" class="compete-url-input" placeholder="https://obsidian.md or App Store URL..." />
+          <span class="label-hint">Paste a website, App Store, or GitHub URL</span>
+        </div>
+
+        <!-- Audit Chain Notice - only visible in AUDIT mode when chain data exists -->
+        <div id="auditChainNotice" class="audit-chain-notice" style="display: none;">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5">
+            <circle cx="7" cy="7" r="6"/>
+            <path d="M7 4v3"/>
+            <circle cx="7" cy="9.5" r="0.5" fill="currentColor"/>
+          </svg>
+          <span>Chain output detected — will audit your full chain</span>
         </div>
 
         <!-- Reference Image Upload - only visible in DESIGN mode -->
@@ -156,6 +207,7 @@
           <button class="chain-tab" data-mode="trd">TRD</button>
           <button class="chain-tab" data-mode="tasks">TASKS</button>
           <button class="chain-tab" data-mode="agent">AGENT</button>
+          <button class="chain-tab" data-mode="design">DESIGN</button>
         </div>
         <button id="rechainBtn" class="rechain-btn" title="Re-generate all steps after this one">
           Re-chain from here →

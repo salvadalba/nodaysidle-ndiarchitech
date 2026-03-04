@@ -7,7 +7,13 @@ use std::process::{Command, Stdio};
 use tauri::Manager;
 
 #[tauri::command]
-fn compile_prd(app: tauri::AppHandle, input: String) -> Result<String, String> {
+fn compile_prd(
+    app: tauri::AppHandle,
+    input: String,
+    llm_provider: Option<String>,
+    llm_model: Option<String>,
+    llm_api_key: Option<String>,
+) -> Result<String, String> {
     // Parse the compiler mode from input (first line: "COMPILER: prd")
     let mode = input
         .lines()
@@ -26,6 +32,10 @@ fn compile_prd(app: tauri::AppHandle, input: String) -> Result<String, String> {
         "image" => "compile_image.sh",
         "video" => "compile_video.sh",
         "design" => "compile_design.sh",
+        "advisor" => "compile_advisor.sh",
+        "audit" => "compile_audit.sh",
+        "analyze" => "compile_analyze.sh",
+        "compete" => "compile_compete.sh",
         _ => "compile_prd.sh",
     };
 
@@ -36,6 +46,11 @@ fn compile_prd(app: tauri::AppHandle, input: String) -> Result<String, String> {
         .collect::<Vec<_>>()
         .join("\n");
 
+    // Build LLM env vars
+    let provider = llm_provider.unwrap_or_else(|| "claude".to_string());
+    let model = llm_model.unwrap_or_default();
+    let api_key = llm_api_key.unwrap_or_default();
+
     // Use Tauri's resource resolver to find the script in the bundle
     let resource_path = app
         .path()
@@ -43,24 +58,43 @@ fn compile_prd(app: tauri::AppHandle, input: String) -> Result<String, String> {
         .map_err(|e| format!("Failed to get resource dir: {e}"))?
         .join(format!("scripts/{}", script_name));
 
-    // If the file doesn't exist (e.g. sometimes in dev if not copied yet), fallback or let it fail clearly
     if !resource_path.exists() {
-        // Fallback for dev mode if needed (though resources should work in dev too)
-        // Try looking relative to current dir for dev convenience
         let cwd = std::env::current_dir().unwrap_or_default();
         let dev_path = cwd.join(format!("src-tauri/scripts/{}", script_name));
         if dev_path.exists() {
-            return run_script(dev_path, script_input);
+            return run_script(dev_path, script_input, &provider, &model, &api_key);
         }
-        return Err(format!("Script not found: {} (checked {} and {})", script_name, resource_path.display(), dev_path.display()));
+        return Err(format!(
+            "Script not found: {} (checked {} and {})",
+            script_name,
+            resource_path.display(),
+            dev_path.display()
+        ));
     }
 
-    run_script(resource_path, script_input)
+    run_script(resource_path, script_input, &provider, &model, &api_key)
 }
 
-fn run_script(path: PathBuf, input: String) -> Result<String, String> {
+fn run_script(
+    path: PathBuf,
+    input: String,
+    llm_provider: &str,
+    llm_model: &str,
+    llm_api_key: &str,
+) -> Result<String, String> {
     let mut child = Command::new("bash")
         .arg(path.to_string_lossy().to_string())
+        .env_remove("CLAUDECODE")
+        // Prevent GLM/Z.AI env vars from leaking into claude --print calls
+        .env_remove("ANTHROPIC_BASE_URL")
+        .env_remove("ANTHROPIC_AUTH_TOKEN")
+        .env_remove("ANTHROPIC_DEFAULT_OPUS_MODEL")
+        .env_remove("ANTHROPIC_DEFAULT_SONNET_MODEL")
+        .env_remove("ANTHROPIC_DEFAULT_HAIKU_MODEL")
+        .env_remove("API_TIMEOUT_MS")
+        .env("LLM_PROVIDER", llm_provider)
+        .env("LLM_MODEL", llm_model)
+        .env("LLM_API_KEY", llm_api_key)
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())

@@ -72,14 +72,15 @@ Do not ask questions. Make reasonable assumptions.
 __USER__
 )"
 
-OUT="$(claude --print <<EOF
-SYSTEM:
+source "$(dirname "$0")/llm_call.sh"
+
+FULL_PROMPT="SYSTEM:
 $SYSTEM_PROMPT
 
 USER:
-$USER_PROMPT
-EOF
-)"
+$USER_PROMPT"
+
+OUT="$(llm_call "$FULL_PROMPT")"
 
 # Sanitize: remove markdown fences and trim whitespace
 OUT="$(echo "$OUT" | sed 's/^```json//g' | sed 's/^```//g' | sed 's/```$//g' | sed 's/```//g')"

@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "NDI",
-  "version": "0.2.0",
+  "productName": "NODAYSIDLE",
+  "version": "0.6.0",
   "identifier": "com.omarchyuser.prdcompiler",
   "build": {
     "frontendDist": "../dist",

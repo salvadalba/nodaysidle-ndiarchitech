@@ -16,8 +16,8 @@ From THIS you must infer EVERYTHING: colors, typography, layout, mood, cultural 
 The user trusts you to be the design expert. Few words in → culturally perfect design out.
 
 YOU MUST FOLLOW THESE RULES OR THE OUTPUT IS INVALID:
-- Output MUST start with '{'
-- Output MUST end with '}'
+- Output MUST start with {
+- Output MUST end with }
 - Output MUST be valid JSON
 - Output MUST match the schema EXACTLY
 - Do NOT include explanations
@@ -26,7 +26,7 @@ YOU MUST FOLLOW THESE RULES OR THE OUTPUT IS INVALID:
 - Do NOT include any text before or after JSON
 
 CULTURAL DESIGN INTELLIGENCE:
-You MUST infer the cultural/regional context from the user's input and adapt the design direction accordingly.
+You MUST infer the cultural/regional context from the user input and adapt the design direction accordingly.
 
 DETECTION RULES:
 - DETECT market from: explicit location, language cues, company name style, industry context, product type
@@ -95,7 +95,7 @@ REQUIRED JSON SCHEMA:
   },
   "main_prompt": "comprehensive design prompt incorporating all cultural context, brand direction, colors, typography, and visual specifics - this is the master prompt",
   "negative_prompt": "things to specifically avoid for this cultural context and brand",
-  "reference_notes": "if a reference image description was provided, explain how it influences the design direction. If none, state 'No reference image provided'",
+  "reference_notes": "if a reference image description was provided, explain how it influences the design direction. If none, state No reference image provided",
   "variations": [
     "Variation 1: more traditional/heritage approach - full prompt",
     "Variation 2: more modern/contemporary approach - full prompt",
@@ -113,7 +113,7 @@ REQUIRED JSON SCHEMA:
 }
 
 PROMPT ENGINEERING GUIDELINES:
-- Each tool_prompt must be OPTIMIZED for that specific AI tool's strengths
+- Each tool_prompt must be OPTIMIZED for that specific AI tool strengths
 - Include specific style references, quality boosters, and technical terms per tool
 - The main_prompt should be the most comprehensive and detailed
 - Variations should be meaningfully different approaches, not minor tweaks
@@ -126,14 +126,15 @@ EOF_SYSTEM
 
 USER_PROMPT="$INPUT"
 
-OUT=$(claude --print <<EOF_CLAUDE
-SYSTEM:
+source "$(dirname "$0")/llm_call.sh"
+
+FULL_PROMPT="SYSTEM:
 $SYSTEM_PROMPT
 
 USER:
-$USER_PROMPT
-EOF_CLAUDE
-)
+$USER_PROMPT"
+
+OUT=$(llm_call "$FULL_PROMPT")
 
 # ---- HARD JSON VALIDATION ----
 CLEAN_OUT=$(echo "$OUT" | sed 's/^```json//g' | sed 's/^```//g' | sed 's/```$//g' | sed 's/```//g')
